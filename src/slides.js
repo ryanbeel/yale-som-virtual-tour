@@ -13,6 +13,7 @@ export const COURSES = {
   mgt541: { code: 'MGT 541', name: 'Corporate Finance', prof: 'Filius Flitwick' },
   schott403: { code: 'MGT 403', name: 'Probability Modeling & Statistics', prof: 'Peter Schott' },
   allison: { code: 'ALLI 101', name: 'Animals, Horses & the Art of Debate', prof: 'Allison' },
+  rose: { code: 'ROSE 101', name: 'Guitar, Grunge & Horses', prof: 'Rose' },
 }
 export const COURSE_KEYS = Object.keys(COURSES)
 export const SLIDE_KINDS = ['title', 'chart', 'content']
@@ -73,6 +74,11 @@ const DECKS = {
     title: ['Why Ryan Jr. Is the Best Cat', 'Worth every single sneeze (achoo!)'],
     content: ['How to win any debate', ['Know your evidence (cats > everything)', 'Anticipate the rebuttal', 'Stay calm, smile, and stand your ground', 'Never agree to play the drums']],
     chart: 'favorites',
+  },
+  rose: {
+    title: ['Grunge Is NOT Terrible Music', '(and other hills I will die on)'],
+    content: ['Official Rose Facts', ['I ride horses. Giddy up!', 'Nirvana > everything (fight me)', 'I definitely do NOT love Taylor Swift', 'I can tie my own shoes. Double knot.']],
+    chart: 'playlist',
   },
 }
 
@@ -212,6 +218,23 @@ function drawChart(g, which) {
     g.fillStyle = '#d62839'
     g.font = 'italic 26px Georgia, serif'
     g.fillText('← not a typo', ox + 40 + 4 * 190 + 10, oy - 30)
+  } else if (which === 'playlist') {
+    axes()
+    const bars = [['Nirvana', 42, '#f2e86d'], ['more Nirvana', 30, '#c9b84a'], ['grunge', 17, '#8a8f98'], ['Taylor Swift*', 0.3, '#ff8fc7']]
+    bars.forEach(([n, v, c], i) => {
+      const x = ox + 60 + i * 230
+      const h = v * 9
+      g.fillStyle = c
+      g.fillRect(x, oy - h, 150, h)
+      g.fillStyle = INK
+      g.font = '28px Georgia, serif'
+      g.fillText(n, x, oy + 40)
+    })
+    g.font = 'bold 32px Georgia, serif'
+    g.fillText('Songs I played this week', ox + 20, 165)
+    g.font = 'italic 26px Georgia, serif'
+    g.fillStyle = '#b5179e'
+    g.fillText('*definitely not 87', ox + 60 + 3 * 230, oy - 40)
   } else if (which === 'payoff') {
     const x0 = 360
     const y0 = 200

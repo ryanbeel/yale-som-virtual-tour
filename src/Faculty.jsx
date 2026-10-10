@@ -4,14 +4,15 @@ import Professor, { PROFESSORS } from './Professor.jsx'
 import Zaman, { ZAMAN } from './Zaman.jsx'
 import Schott, { SCHOTT } from './Schott.jsx'
 import Allison, { ALLISON } from './Allison.jsx'
+import Rose, { ROSE } from './Rose.jsx'
 import { DRUMS, LECTERNS } from './layout.js'
 
 // who teaches in which classroom: Hogwarts professors (matching the slide decks), plus real SOM
 // professors you can chat with (AVATARS): Zaman in 2200, where the catalog says MGT 409 meets,
-// Schott teaching stats in 2210 next door, and honorary professor Allison in 2400
+// Schott teaching stats in 2210 next door, honorary professor Allison in 2400, and Rose in 2410
 export const ROOM_PROFESSOR = {
   2400: 'allison', // honorary professor (with Ryan Jr. the cat)
-  2410: 'mcgonagall', // MGT 404 Basics of Economics
+  2410: 'rose', // guitar, grunge & horses
   2420: 'trelawney', // MGT 403 Probability Modeling & Statistics
   2430: 'slughorn', // MGT 887 Negotiations
   2200: 'zaman', // MGT 409 AI Foundations for Managers (EVANS 2200 in the catalog)
@@ -25,6 +26,7 @@ const AVATARS = {
   zaman: [Zaman, ZAMAN],
   schott: [Schott, SCHOTT],
   allison: [Allison, ALLISON],
+  rose: [Rose, ROSE],
 }
 
 function plaqueTex(name) {

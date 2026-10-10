@@ -50,7 +50,7 @@ function canvasTex(w, h, draw) {
   return t
 }
 
-function bubbleMat(text, color = PINK) {
+export function bubbleMat(text, color = PINK) {
   return new THREE.SpriteMaterial({
     transparent: true,
     depthWrite: false,
@@ -76,7 +76,7 @@ const BUBBLES = ['Achoo!', 'Ryan Jr. ♥', 'NOT the drums!']
 const bubbleMats = BUBBLES.map((t) => bubbleMat(t))
 
 // position along the classroom's front frame: `back` meters into the room, `wall` meters along the front wall
-function at(front, back, wall) {
+export function at(front, back, wall) {
   const { fc, back: b, t } = front
   return [fc[0] + b[0] * back + t[0] * wall, 0, fc[1] + b[1] * back + t[1] * wall]
 }
@@ -266,7 +266,7 @@ function AllisonRoom({ front, rotation }) {
   )
 }
 
-function Horse({ position, rotation }) {
+export function Horse({ position, rotation, saddle = [PINK, '#7a4fd1'] }) {
   const neck = useRef()
   const tail = useRef()
   useFrame(({ clock }) => {
@@ -287,8 +287,8 @@ function Horse({ position, rotation }) {
         </group>
       ))}
       {/* saddle in her colors */}
-      <B c={PINK} p={[0, 1.33, 0.05]} s={[0.3, 0.07, 0.28]} />
-      <B g={BOX} c="#7a4fd1" p={[0, 1.2, 0.05]} s={[0.67, 0.28, 0.4]} />
+      <B c={saddle[0]} p={[0, 1.33, 0.05]} s={[0.3, 0.07, 0.28]} />
+      <B g={BOX} c={saddle[1]} p={[0, 1.2, 0.05]} s={[0.67, 0.28, 0.4]} />
       <group ref={neck} position={[0, 1.25, 0.5]}>
         <B g={CAP} c={COAT} p={[0, 0.3, 0]} s={[0.14, 0.22, 0.15]} />
         {[0, 1, 2, 3, 4].map((i) => (
