@@ -11,6 +11,7 @@ export const COURSES = {
   mgt538: { code: 'MGT 538', name: 'Mastering Influence & Persuasion', prof: 'Gilderoy Lockhart' },
   mgt800: { code: 'MGT 800', name: 'Crisis Management in Tech', prof: 'Alastor Moody' },
   mgt541: { code: 'MGT 541', name: 'Corporate Finance', prof: 'Filius Flitwick' },
+  schott403: { code: 'MGT 403', name: 'Probability Modeling & Statistics', prof: 'Peter Schott' },
 }
 export const COURSE_KEYS = Object.keys(COURSES)
 export const SLIDE_KINDS = ['title', 'chart', 'content']
@@ -61,6 +62,11 @@ const DECKS = {
     title: ['Valuation by DCF', 'A dollar today beats a dollar tomorrow'],
     content: ['NPV and the cost of capital', ['NPV = Σ CFₜ / (1 + r)ᵗ − I₀', 'Take projects with NPV > 0', 'r = WACC, set by risk, not by hope', 'Terminal value often dominates — check it']],
     chart: 'dcf',
+  },
+  schott403: {
+    title: ['The Central Limit Theorem', 'The best theorem in all of statistics!'],
+    content: ['Why averages are (almost) always normal', ['X̄ ≈ Normal(μ, σ²/n) as n grows', 'Works for dice, coins, sales... almost anything!', 'Standard error = σ / √n', '95% CI: X̄ ± 1.96 · σ/√n']],
+    chart: 'clt',
   },
 }
 
@@ -147,6 +153,42 @@ function drawChart(g, which) {
     g.fillStyle = INK
     g.fillText('68% within ±1σ', mx - 105, 470)
     g.fillText('μ', mx - 8, oy + 40)
+  } else if (which === 'clt') {
+    // one die roll is flat; the average of 30 rolls is a bell curve
+    g.fillStyle = INK
+    g.font = 'bold 30px Georgia, serif'
+    g.fillText('One die roll', 120, 200)
+    g.fillText('Average of 30 rolls', 700, 200)
+    g.fillStyle = '#8aa4c8'
+    for (let i = 0; i < 6; i++) {
+      g.fillRect(120 + i * 62, 440, 50, 150)
+      g.fillStyle = INK
+      g.font = '26px Georgia, serif'
+      g.fillText(String(i + 1), 137 + i * 62, 625)
+      g.fillStyle = '#8aa4c8'
+    }
+    g.fillStyle = PINK
+    g.font = 'bold 64px Georgia, serif'
+    g.fillText('→', 540, 470)
+    const pdf = (x) => Math.exp(-(x * x) / 2)
+    for (let i = 0; i < 15; i++) {
+      const z = (i - 7) / 2.4
+      const h = 330 * pdf(z)
+      g.fillStyle = i === 7 ? PINK : BLUE
+      g.fillRect(660 + i * 32, 590 - h, 26, h)
+    }
+    g.strokeStyle = PINK
+    g.lineWidth = 5
+    g.beginPath()
+    for (let x = 650; x <= 1150; x += 4) {
+      const z = (x - 885) / (32 * 2.4)
+      const y = 590 - 330 * pdf(z)
+      x === 650 ? g.moveTo(x, y) : g.lineTo(x, y)
+    }
+    g.stroke()
+    g.fillStyle = INK
+    g.font = 'italic 28px Georgia, serif'
+    g.fillText('n → ∞ and it just works. Beautiful!', 640, 650)
   } else if (which === 'payoff') {
     const x0 = 360
     const y0 = 200

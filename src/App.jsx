@@ -4,6 +4,8 @@ import World from './World.jsx'
 import Player from './Player.jsx'
 import Minimap from './Minimap.jsx'
 import TouchControls from './TouchControls.jsx'
+import ChatWindow from './ChatWindow.jsx'
+import { chat, useChat } from './chat.js'
 import { EYE, SPAWN } from './layout.js'
 
 export default function App() {
@@ -24,6 +26,19 @@ export default function App() {
     setTouchOn(on)
   }
   const playing = locked || touchOn
+  const talkingTo = useChat((s) => s.open)
+  const aim = useChat((s) => s.aim)
+  const near = useChat((s) => s.near)
+  // opening a chat frees the mouse so you can type (and stops any joystick drift)
+  useEffect(() => {
+    if (!talkingTo) return
+    touchRef.current.move = [0, 0]
+    if (document.pointerLockElement) document.exitPointerLock()
+  }, [talkingTo])
+  const closeChat = (resume) => {
+    chat.set({ open: null })
+    if (resume && !touchOn) lockRef.current?.() // the close click counts as a gesture, so we can re-lock
+  }
   useEffect(() => {
     const k = (e) => e.code === 'KeyM' && setShowMap((v) => !v)
     window.addEventListener('keydown', k)
@@ -50,10 +65,17 @@ export default function App() {
       <button className="maptoggle" onClick={() => setShowMap((s) => !s)}>
         {showMap ? 'hide map' : 'map'}
       </button>
-      {playing && <div className="crosshair" />}
-      {touchOn && <TouchControls touchRef={touchRef} onPause={() => setTouch(false)} />}
+      {playing && !talkingTo && <div className="crosshair" />}
+      {locked && !talkingTo && aim && <div className="aimhint">Click to chat with Prof. {aim.name.split(' ').pop()}</div>}
+      {touchOn && !talkingTo && <TouchControls touchRef={touchRef} onPause={() => setTouch(false)} />}
+      {touchOn && !talkingTo && near && (
+        <button className="go talkbtn" onClick={() => chat.set({ open: near })}>
+          Talk to Prof. {near.name.split(' ').pop()}
+        </button>
+      )}
+      <ChatWindow onClose={closeChat} />
 
-      {!playing && (
+      {!playing && !talkingTo && (
         <div className="overlay" onClick={() => (isTouch ? setTouch(true) : lockRef.current?.())}>
           <div className="card">
             <div className="kicker">Yale SOM · Evans Hall</div>
