@@ -12,6 +12,7 @@ export const COURSES = {
   mgt800: { code: 'MGT 800', name: 'Crisis Management in Tech', prof: 'Alastor Moody' },
   mgt541: { code: 'MGT 541', name: 'Corporate Finance', prof: 'Filius Flitwick' },
   schott403: { code: 'MGT 403', name: 'Probability Modeling & Statistics', prof: 'Peter Schott' },
+  allison: { code: 'ALLI 101', name: 'Animals, Horses & the Art of Debate', prof: 'Allison' },
 }
 export const COURSE_KEYS = Object.keys(COURSES)
 export const SLIDE_KINDS = ['title', 'chart', 'content']
@@ -67,6 +68,11 @@ const DECKS = {
     title: ['The Central Limit Theorem', 'The best theorem in all of statistics!'],
     content: ['Why averages are (almost) always normal', ['X̄ ≈ Normal(μ, σ²/n) as n grows', 'Works for dice, coins, sales... almost anything!', 'Standard error = σ / √n', '95% CI: X̄ ± 1.96 · σ/√n']],
     chart: 'clt',
+  },
+  allison: {
+    title: ['Why Ryan Jr. Is the Best Cat', 'Worth every single sneeze (achoo!)'],
+    content: ['How to win any debate', ['Know your evidence (cats > everything)', 'Anticipate the rebuttal', 'Stay calm, smile, and stand your ground', 'Never agree to play the drums']],
+    chart: 'favorites',
   },
 }
 
@@ -189,6 +195,23 @@ function drawChart(g, which) {
     g.fillStyle = INK
     g.font = 'italic 28px Georgia, serif'
     g.fillText('n → ∞ and it just works. Beautiful!', 640, 650)
+  } else if (which === 'favorites') {
+    axes()
+    const bars = [['Ryan Jr.', 10, PINK], ['horses', 8.5, '#8a5a34'], ['all animals', 7.5, '#2ec4a6'], ['debate', 6.5, '#7a4fd1'], ['drums', 0.15, '#999999']]
+    bars.forEach(([n, v, c], i) => {
+      const x = ox + 40 + i * 190
+      const h = v * 38
+      g.fillStyle = c
+      g.fillRect(x, oy - h, 130, h)
+      g.fillStyle = INK
+      g.font = '26px Georgia, serif'
+      g.fillText(n, x + 4, oy + 38)
+    })
+    g.font = 'bold 32px Georgia, serif'
+    g.fillText('Things I love (very scientific)', ox + 20, 165)
+    g.fillStyle = '#d62839'
+    g.font = 'italic 26px Georgia, serif'
+    g.fillText('← not a typo', ox + 40 + 4 * 190 + 10, oy - 30)
   } else if (which === 'payoff') {
     const x0 = 360
     const y0 = 200
