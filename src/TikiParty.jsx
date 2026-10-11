@@ -407,7 +407,7 @@ function CountdownSign({ position }) {
 }
 
 // ---------- props
-function Torch({ position }) {
+export function Torch({ position }) {
   const flame = useRef()
   const seed = position[0] * 3.1 + position[2]
   useFrame(({ clock }) => {
@@ -429,7 +429,7 @@ function Torch({ position }) {
   )
 }
 
-function Totem({ position, rotation = 0 }) {
+export function Totem({ position, rotation = 0 }) {
   const faces = useMemo(() => [
     monsterParts({ wood: '#7a4a2c', skirt: false }),
     monsterParts({ wood: '#a0673f', skirt: false, leaf: '#ff7a3d' }),

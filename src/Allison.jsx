@@ -205,7 +205,7 @@ export default function Allison({ position, rotation = 0, front }) {
 }
 
 // ---------- Ryan Jr.: black-and-white tuxedo cat with a red collar, swishing his tail
-function RyanJr() {
+export function RyanJr() {
   const tail = useRef()
   const headRef = useRef()
   useFrame(({ clock }) => {

@@ -407,3 +407,22 @@ body,
     height: 46vh;
   }
 }
+
+/* ---------- portal teleport flash */
+.flash {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  pointer-events: none;
+  z-index: 30;
+  animation: flash 0.9s ease-out forwards;
+}
+
+@keyframes flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

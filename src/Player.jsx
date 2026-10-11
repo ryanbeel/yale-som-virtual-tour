@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js'
-import { EYE, MAX_STEP, SPAWN, collide, floorAt, locate } from './layout.js'
+import { EYE, MAX_STEP } from './layout.js'
+import { useWorld } from './world.js'
 
 const CROUCH_EYE = 1.05
 const JUMP_SPEED = 4.2
@@ -11,8 +12,11 @@ const LOOK_SPEED = 0.005 // radians per touch pixel
 
 // PC controls work like a shooter: WASD move, mouse look, Shift sprint, Space jump, C crouch.
 // Touch controls come in through touchRef: { active, move: [x, y], look: [dx, dy], jump }.
-export default function Player({ lockRef, mapRef, touchRef, onLock, onWhere }) {
+// `env` is the current world's physics: { collide, floorAt, locate, spawn: { x, z, yaw } }.
+export default function Player({ lockRef, mapRef, touchRef, onLock, onWhere, env }) {
   const { camera, gl } = useThree()
+  const { collide, floorAt, locate } = env
+  const arrival = useWorld() // changes on every world switch
   const controls = useMemo(() => new PointerLockControls(camera, gl.domElement), [camera, gl])
   const keys = useRef({})
   const where = useRef('')
@@ -24,9 +28,15 @@ export default function Player({ lockRef, mapRef, touchRef, onLock, onWhere }) {
   const fwd = useMemo(() => new THREE.Vector3(), [])
   const euler = useMemo(() => new THREE.Euler(0, 0, 0, 'YXZ'), [])
 
+  // arrive at the world's spawn (on load, and whenever a portal switches worlds)
   useEffect(() => {
-    camera.position.set(SPAWN.x, EYE, SPAWN.z)
-    camera.rotation.set(0, 0, 0)
+    const sp = arrival.spawn ?? env.spawn
+    floorY.current = env.floorAt(sp.x, sp.z)
+    camera.position.set(sp.x, floorY.current + EYE, sp.z)
+    camera.rotation.set(0, sp.yaw ?? 0, 0, 'YXZ')
+  }, [arrival, env, camera])
+
+  useEffect(() => {
     lockRef.current = () => controls.lock()
     const on = () => onLock(true)
     const off = () => {

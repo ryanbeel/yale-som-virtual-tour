@@ -12,6 +12,7 @@ import TikiParty from './TikiParty.jsx'
 import DinoCrowd from './DinoCrowd.jsx'
 import Faculty from './Faculty.jsx'
 import HandsomeDan from './HandsomeDan.jsx'
+import Portal from './Portal.jsx'
 import { COURSE_KEYS, slideTex } from './slides.js'
 import { rng } from './textures.js'
 
@@ -557,6 +558,8 @@ export default function World() {
       <DinoCrowd />
       <Faculty />
       <HandsomeDan />
+      {/* portal to Ryan Jr. Island, against the back wall of room 2220 at the top of the aisle */}
+      <Portal position={[0, 1.6, -37.3]} radius={1.25} to="island" label="RYAN JR. ISLAND" labelY={0.62} />
     </>
   )
 }

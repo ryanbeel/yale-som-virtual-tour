@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import World from './World.jsx'
+import Island from './Island.jsx'
 import Player from './Player.jsx'
 import Minimap from './Minimap.jsx'
 import TouchControls from './TouchControls.jsx'
 import ChatWindow from './ChatWindow.jsx'
 import { chat, useChat } from './chat.js'
-import { EYE, SPAWN } from './layout.js'
+import { EYE, SPAWN, collide, floorAt, locate } from './layout.js'
+import * as island from './island.js'
+import { useWorld } from './world.js'
+
+// each world's physics for the player: walls, floor heights, room names, and where you appear
+const ENVS = {
+  evans: { collide, floorAt, locate, spawn: { x: SPAWN.x, z: SPAWN.z, yaw: 0 } },
+  island: { collide: island.collide, floorAt: island.floorAt, locate: island.locate, spawn: island.SPAWN },
+}
 
 export default function App() {
   const [locked, setLocked] = useState(false)
@@ -26,6 +35,7 @@ export default function App() {
     setTouchOn(on)
   }
   const playing = locked || touchOn
+  const here = useWorld()
   const talkingTo = useChat((s) => s.open)
   const aim = useChat((s) => s.aim)
   const near = useChat((s) => s.near)
@@ -51,8 +61,8 @@ export default function App() {
         camera={{ fov: 72, near: 0.05, far: 800, position: [SPAWN.x, EYE, SPAWN.z] }}
         dpr={[1, 1.75]}
       >
-        <World />
-        <Player lockRef={lockRef} mapRef={mapRef} touchRef={touchRef} onLock={onLock} onWhere={onWhere} />
+        {here.name === 'island' ? <Island /> : <World />}
+        <Player lockRef={lockRef} mapRef={mapRef} touchRef={touchRef} onLock={onLock} onWhere={onWhere} env={ENVS[here.name]} />
       </Canvas>
 
       <div className="where">
@@ -60,7 +70,7 @@ export default function App() {
         {where}
       </div>
       <div className={showMap ? 'mapwrap' : 'mapwrap hidden'}>
-        <Minimap drawRef={mapRef} />
+        <Minimap key={here.name} drawRef={mapRef} world={here.name} />
       </div>
       <button className="maptoggle" onClick={() => setShowMap((s) => !s)}>
         {showMap ? 'hide map' : 'map'}
@@ -74,13 +84,24 @@ export default function App() {
         </button>
       )}
       <ChatWindow onClose={closeChat} />
+      {here.flash > 0 && <div key={here.flash} className="flash" />}
 
       {!playing && !talkingTo && (
         <div className="overlay" onClick={() => (isTouch ? setTouch(true) : lockRef.current?.())}>
           <div className="card">
-            <div className="kicker">Yale SOM · Evans Hall</div>
-            <h1>Floor 2</h1>
-            <p className="sub">Classroom drums, the cloister, Ross Library, the Beinecke Terrace Room, and the courtyard.</p>
+            {here.name === 'island' ? (
+              <>
+                <div className="kicker">Through the portal</div>
+                <h1>Ryan Jr. Island</h1>
+                <p className="sub">Beaches, a tiki party, the Clone-O-Matic and a whole lot of Ryan Jr. Stay out of the water (or don&apos;t).</p>
+              </>
+            ) : (
+              <>
+                <div className="kicker">Yale SOM · Evans Hall</div>
+                <h1>Floor 2</h1>
+                <p className="sub">Classroom drums, the cloister, Ross Library, the Beinecke Terrace Room, and the courtyard. Find the portal in room 2220!</p>
+              </>
+            )}
             <button className="go">{isTouch ? 'Tap to walk in' : 'Click to walk in'}</button>
             {!isTouch && (
               <button
