@@ -6,7 +6,8 @@ import Player from './Player.jsx'
 import Minimap from './Minimap.jsx'
 import TouchControls from './TouchControls.jsx'
 import ChatWindow from './ChatWindow.jsx'
-import { chat, useChat } from './chat.js'
+import { chat, talkTo, useChat } from './chat.js'
+import { concert, useConcert } from './concert.js'
 import { EYE, SPAWN, collide, floorAt, locate } from './layout.js'
 import * as island from './island.js'
 import { useWorld } from './world.js'
@@ -36,6 +37,7 @@ export default function App() {
   }
   const playing = locked || touchOn
   const here = useWorld()
+  const show = useConcert()
   const talkingTo = useChat((s) => s.open)
   const aim = useChat((s) => s.aim)
   const near = useChat((s) => s.near)
@@ -76,15 +78,21 @@ export default function App() {
         {showMap ? 'hide map' : 'map'}
       </button>
       {playing && !talkingTo && <div className="crosshair" />}
-      {locked && !talkingTo && aim && <div className="aimhint">Click to chat with Prof. {aim.name.split(' ').pop()}</div>}
+      {locked && !talkingTo && aim && <div className="aimhint">{aim.hint ?? `Click to chat with Prof. ${aim.name.split(' ').pop()}`}</div>}
       {touchOn && !talkingTo && <TouchControls touchRef={touchRef} onPause={() => setTouch(false)} />}
       {touchOn && !talkingTo && near && (
-        <button className="go talkbtn" onClick={() => chat.set({ open: near })}>
-          Talk to Prof. {near.name.split(' ').pop()}
+        <button className="go talkbtn" onClick={() => talkTo(near)}>
+          {near.talk ?? `Talk to Prof. ${near.name.split(' ').pop()}`}
         </button>
       )}
       <ChatWindow onClose={closeChat} />
+      {here.name === 'island' && (
+        <button className="mute" onClick={() => concert.setMuted(!show.muted)} aria-label={show.muted ? 'Unmute music' : 'Mute music'}>
+          {show.muted ? '🔇' : '🔊'}
+        </button>
+      )}
       {here.flash > 0 && <div key={here.flash} className="flash" />}
+      {here.name === 'island' && show.erupted && <div className="flash erupt" />}
 
       {!playing && !talkingTo && (
         <div className="overlay" onClick={() => (isTouch ? setTouch(true) : lockRef.current?.())}>

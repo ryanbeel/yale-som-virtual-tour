@@ -39,6 +39,9 @@ export const STAGE = { x: -24, z: 17, w: 11, d: 7, rot: Math.PI / 2 } // faces e
 export const BAR = { x: 22, z: 20, rot: -Math.PI / 2 } // faces west toward the plaza
 export const HUTS = [[-32, -6, 0.6], [-14, -28, 0.2], [-40, 30, 2.4], [38, 10, -1.2], [10, -46, 0.1]]
 export const HAMMOCK = { a: [16, 42], b: [21, 40] }
+// concert: Golden Ryan Jr. (talk to him to start the show) and the audience area in front of the stage
+export const GOLDEN = { x: -14, z: 28 }
+export const AUDIENCE = { x0: -18, x1: -8.5, z0: 10, z1: 24 }
 
 function rand(seed) {
   let s = seed >>> 0
@@ -51,6 +54,8 @@ const clear = (x, z, pad = 0) => {
   if (Math.abs(x - STAGE.x) < STAGE.d / 2 + 4 + pad && Math.abs(z - STAGE.z) < STAGE.w / 2 + 4 + pad) return false
   if (Math.hypot(x - BAR.x, z - BAR.z) < 7 + pad) return false
   if (Math.hypot(x - RETURN_PORTAL.x, z - RETURN_PORTAL.z) < 5 + pad) return false
+  if (Math.hypot(x - GOLDEN.x, z - GOLDEN.z) < 4 + pad) return false
+  if (x > AUDIENCE.x0 - 2 && x < AUDIENCE.x1 + 2 && z > AUDIENCE.z0 - 2 && z < AUDIENCE.z1 + 2) return false
   if (Math.hypot(x - CRATER.x, z - CRATER.z) < CRATER.r + 7 + pad) return false
   if (HUTS.some(([hx, hz]) => Math.hypot(x - hx, z - hz) < 5 + pad)) return false
   return true
@@ -89,6 +94,7 @@ export const TORCHES = Array.from({ length: 12 }, (_, i) => {
   const a = (i / 12) * Math.PI * 2
   return [PLAZA.x + Math.cos(a) * (PLAZA.r + 1), PLAZA.z + Math.sin(a) * (PLAZA.r + 1)]
 }).filter(([x, z]) => !(Math.abs(x) < 3.5 && z > MACHINE.z)) // keep the walkway from the arrival spot clear
+  .filter(([x, z]) => !(x > AUDIENCE.x0 - 1 && x < AUDIENCE.x1 + 1.5 && z > AUDIENCE.z0 - 1 && z < AUDIENCE.z1 + 1)) // ...and the audience
 
 // ---------- player physics hooks (same shape as layout.js: collide / floorAt / locate)
 const R_PLAYER = 0.35
@@ -99,6 +105,7 @@ const POSTS = () => [
   [SIGN.x - 6.5, SIGN.z, 0.4],
   [SIGN.x + 6.5, SIGN.z, 0.4],
   [BAR.x, BAR.z, 2.6],
+  [GOLDEN.x, GOLDEN.z, 0.9],
 ]
 let posts
 export function collide(pos) {
@@ -144,7 +151,8 @@ export function locate(x, z) {
   let where = 'Beach'
   if (inWater(x, z)) where = 'In the water… watch out for the shark!'
   else if (at(MACHINE, 5)) where = 'Clone-O-Matic 3000'
-  else if (Math.abs(x - STAGE.x) < STAGE.d / 2 + 3 && Math.abs(z - STAGE.z) < STAGE.w / 2 + 3) where = 'The Stage · band coming soon'
+  else if (Math.abs(x - STAGE.x) < STAGE.d / 2 + 3 && Math.abs(z - STAGE.z) < STAGE.w / 2 + 3) where = 'The Stage'
+  else if (at(GOLDEN, 3)) where = 'Golden Ryan Jr.'
   else if (at(BAR, 7)) where = 'Tiki Bar'
   else if (at(CRATER, CRATER.r + 6)) where = 'Diamond Head crater'
   else if (at(PLAZA, PLAZA.r + 6) || onPath(x, z)) where = 'Arrival Plaza'

@@ -42,7 +42,7 @@ const M = (p = [0, 0, 0], r = [0, 0, 0], s = [1, 1, 1]) => new THREE.Matrix4().c
 const mul = (...ms) => ms.reduce((a, b) => a.clone().multiply(b))
 
 const SKIRT = new THREE.CylinderGeometry(0.8, 1, 1, 22, 1, true)
-const GEO = { sphere: G.sphere, cone: CONE, cyl: G.cyl, limb: G.limb, box: G.box, skirt: SKIRT }
+export const GEO = { sphere: G.sphere, cone: CONE, cyl: G.cyl, limb: G.limb, box: G.box, skirt: SKIRT }
 const mats = new Map()
 function mat(color, glow = 0) {
   const k = color + glow
@@ -54,7 +54,7 @@ function mat(color, glow = 0) {
   return mats.get(k)
 }
 
-function Parts({ parts }) {
+export function Parts({ parts }) {
   return parts.map((p, i) => (
     <mesh key={i} geometry={GEO[p.bucket]} material={mat(p.color, p.glow)} matrix={p.m} matrixAutoUpdate={false} />
   ))
@@ -65,7 +65,7 @@ const LEAF = '#3f9b4a'
 const FLOWERS = ['#ff4fa3', '#ffd23f', '#ff7a3d', '#ffffff', '#b48be0']
 
 // ---------- party dino: a classroom dino plus a lei, a flower and maybe a grass skirt
-function dinoParts(o) {
+export function dinoParts(o) {
   const s = { kind: 'rex', skin: '#6cc46a', belly: '#fff3c4', accent: '#ff7a3d', tilt: 0, ...o }
   const out = partsFor(s)
   const add = (bucket, m, color) => out.push({ bucket, m, color })
@@ -82,7 +82,7 @@ function dinoParts(o) {
 }
 
 // ---------- friendly tiki monster: a carved wooden totem-blob with a leafy headdress
-function monsterParts({ wood = '#a0673f', leaf = LEAF, flower = '#ff4fa3', skirt = true, torch = false }) {
+export function monsterParts({ wood = '#a0673f', leaf = LEAF, flower = '#ff4fa3', skirt = true, torch = false }) {
   const out = []
   const add = (bucket, m, color, glow) => out.push({ bucket, m, color, glow })
   const dark = new THREE.Color(wood).multiplyScalar(0.6).getStyle()

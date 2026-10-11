@@ -2,7 +2,8 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { bubbleMat } from './Allison.jsx'
-import { SHORE, heightAt, inWater } from './island.js'
+import { SHORE, STAGE, heightAt, inWater } from './island.js'
+import { concert } from './concert.js'
 
 // A big cartoon shark. It patrols offshore with its fin above the waves; step into the water and it
 // swims straight at you, then circles you, chomping (it's friendly... probably). Faces +z.
@@ -42,6 +43,7 @@ export default function Shark() {
     const pz = camera.position.z
     const hunting = inWater(px, pz)
     const close = hunting && Math.hypot(px - s.x, pz - s.z) < 9
+    const party = !hunting && concert.timeline().erupt >= 0
     let tx
     let tz
     let speed
@@ -59,6 +61,11 @@ export default function Shark() {
         tz = pz + Math.sin(s.orbit) * 6.5
         speed = 2.5
       }
+    } else if (party) {
+      // swim back and forth off the beach behind the stage, where the crowd can see it jump
+      tx = STAGE.x - 46 + Math.sin(t * 0.15) * 4
+      tz = STAGE.z + Math.sin(t * 0.21) * 22
+      speed = 8
     } else {
       const a = t * 0.06
       const R = Math.max(PATROL_R, SHORE(a) + 18)
@@ -86,8 +93,12 @@ export default function Shark() {
     sharkPos.x = s.x
     sharkPos.z = s.z
     if (import.meta.env.DEV) document.body.dataset.shark = `${s.x.toFixed(2)},${s.z.toFixed(2)}`
-    root.current.position.set(s.x, -0.45 + s.rise * 0.55 + Math.sin(t * 1.5) * 0.06, s.z)
-    root.current.rotation.set(-s.rise * 0.18, s.yaw, Math.sin(t * 3) * 0.05)
+    // during the eruption it breaches: a big leap every 4 seconds
+    const leap = party ? (t % 4) / 1.5 : 1
+    const jump = leap < 1 ? Math.sin(leap * Math.PI) * 6 : 0
+    const flip = leap < 1 ? -Math.cos(leap * Math.PI) * 0.9 : 0
+    root.current.position.set(s.x, -0.45 + s.rise * 0.55 + jump + Math.sin(t * 1.5) * 0.06, s.z)
+    root.current.rotation.set(-s.rise * 0.18 + flip, s.yaw, Math.sin(t * 3) * 0.05)
     tail.current.rotation.y = Math.sin(t * (hunting ? 9 : 5)) * 0.45
     jaw.current.rotation.x = close ? 0.15 + Math.abs(Math.sin(t * 6)) * 0.45 : 0.08
     bubble.current.visible = close

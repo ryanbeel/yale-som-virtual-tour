@@ -1,7 +1,8 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { MACHINE, heightAt, inland } from './island.js'
+import { AUDIENCE, MACHINE, heightAt, inland } from './island.js'
+import { concert } from './concert.js'
 
 // The Ryan Jr. clone army: 100 at the start, plus one more out of the Clone-O-Matic every 60 seconds.
 // Each body part (head, ears, tail...) is one InstancedMesh shared by every cat, so hundreds of cats
@@ -137,6 +138,8 @@ export default function IslandCats() {
     const dt = Math.min(rawDt, 0.05)
     const now = pageSeconds()
     const total = Math.min(MAX_CLONES, cloneTotal(now))
+    const party = concert.get().phase === 'show'
+    const wild = concert.get().erupted // two thirds of the clones join in once the volcano blows
     catCount.n = total
     cats.forEach((cat, i) => {
       const t = now + cat.phase
@@ -153,6 +156,22 @@ export default function IslandCats() {
           y = 0.35 + Math.sin(Math.min(1, age / BIRTH) * Math.PI) * 0.6
         } else {
           cat.timer -= dt
+          if (party && (i % 3 === 0 || (wild && i % 3 === 1)) && !cat.partying) {
+            // run to the back of the crowd and dance
+            cat.partying = true
+            cat.mode = 'walk'
+            cat.speed *= 3
+            cat.target = [AUDIENCE.x1 + 1 + cat.rand() * 5, AUDIENCE.z0 + cat.rand() * (AUDIENCE.z1 - AUDIENCE.z0)]
+            cat.timer = 99
+          } else if (!party && cat.partying) {
+            cat.partying = false
+            cat.speed /= 3
+            cat.timer = 0
+          }
+          if (cat.partying && cat.mode === 'walk' && Math.hypot(cat.target[0] - cat.x, cat.target[1] - cat.z) < 0.5) {
+            cat.mode = 'dance'
+            cat.timer = 99
+          }
           if (cat.timer <= 0) {
             const pick = cat.rand()
             cat.mode = pick < 0.55 ? 'walk' : pick < 0.72 ? 'dance' : pick < 0.87 ? 'sit' : 'nap'
@@ -163,7 +182,7 @@ export default function IslandCats() {
             const dx = cat.target[0] - cat.x
             const dz = cat.target[1] - cat.z
             const d = Math.hypot(dx, dz)
-            if (d < 0.5) cat.timer = 0
+            if (d < 0.5 && !cat.partying) cat.timer = 0
             else {
               const step = Math.min(d, cat.speed * dt)
               cat.x += (dx / d) * step

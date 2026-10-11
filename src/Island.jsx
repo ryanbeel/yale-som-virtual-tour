@@ -6,6 +6,9 @@ import CloneMachine from './CloneMachine.jsx'
 import IslandCats from './IslandCats.jsx'
 import Portal from './Portal.jsx'
 import Shark from './Shark.jsx'
+import Concert from './Concert.jsx'
+import { concert, useConcert } from './concert.js'
+import Volcano from './Volcano.jsx'
 import { Torch, Totem } from './TikiParty.jsx'
 import {
   BAR, BEACH_SPOTS, CRATER, HAMMOCK, HUTS, MACHINE, PALMS, PLAZA, RETURN_PORTAL, SHORE, SIGN, STAGE, TORCHES,
@@ -75,43 +78,98 @@ function Instanced({ geo, mat, list }) {
   return <instancedMesh ref={ref} args={[geo, mat, list.length]} />
 }
 
-// ---------- sky, sun, fog
+// ---------- sky, sun/moon, stars, fog: day normally, night during the concert (blends both ways)
+const DAY = { top: '#2f8fe0', mid: '#8fd3ff', low: '#e8f8ff', fog: '#bfe9ff', hemi: 1.1, sun: 1.9, amb: 0.25, cloud: '#ffffff' }
+const NIGHT = { top: '#04051a', mid: '#141a4a', low: '#3a2a5a', fog: '#141a3a', hemi: 0.22, sun: 0.18, amb: 0.12, cloud: '#3a3f66' }
+const lerpColor = (a, b, k) => new THREE.Color(a).lerp(new THREE.Color(b), k)
+
 function Atmosphere() {
   const { scene } = useThree()
+  const hemi = useRef()
+  const sun = useRef()
+  const amb = useRef()
+  const sunBall = useRef()
+  const moon = useRef()
+  const stars = useRef()
+  const last = useRef(-1)
+  const cloudMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff', fog: false }), [])
+  const starMat = useMemo(() => new THREE.PointsMaterial({ color: '#ffffff', size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0, fog: false }), [])
+  const starGeo = useMemo(() => {
+    const r = rand(99)
+    const pts = []
+    for (let i = 0; i < 700; i++) {
+      const a = r() * Math.PI * 2
+      const y = 0.08 + r() * 0.92
+      const rr = Math.sqrt(1 - y * y)
+      pts.push(Math.cos(a) * rr * 380, y * 380, Math.sin(a) * rr * 380)
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3))
+    return g
+  }, [])
+  const sky = useMemo(() => {
+    const c = document.createElement('canvas')
+    c.width = 4
+    c.height = 256
+    const t = new THREE.CanvasTexture(c)
+    t.colorSpace = THREE.SRGBColorSpace
+    return { c, t }
+  }, [])
   useLayoutEffect(() => {
     const prev = { bg: scene.background, fog: scene.fog, env: scene.environmentIntensity }
-    scene.background = canvasTex(4, 256, (g, w, h) => {
-      const grad = g.createLinearGradient(0, 0, 0, h)
-      grad.addColorStop(0, '#2f8fe0')
-      grad.addColorStop(0.55, '#8fd3ff')
-      grad.addColorStop(1, '#e8f8ff')
-      g.fillStyle = grad
-      g.fillRect(0, 0, w, h)
-    })
-    scene.fog = new THREE.Fog('#bfe9ff', 90, 330)
+    scene.background = sky.t
+    scene.fog = new THREE.Fog(DAY.fog, 90, 330)
     scene.environmentIntensity = 0.35
     return () => {
       scene.background = prev.bg
       scene.fog = prev.fog
       scene.environmentIntensity = prev.env
     }
-  }, [scene])
+  }, [scene, sky])
+  useFrame(() => {
+    const { night } = concert.timeline()
+    if (Math.abs(night - last.current) < 0.002) return
+    last.current = night
+    const g = sky.c.getContext('2d')
+    const grad = g.createLinearGradient(0, 0, 0, 256)
+    grad.addColorStop(0, '#' + lerpColor(DAY.top, NIGHT.top, night).getHexString())
+    grad.addColorStop(0.55, '#' + lerpColor(DAY.mid, NIGHT.mid, night).getHexString())
+    grad.addColorStop(1, '#' + lerpColor(DAY.low, NIGHT.low, night).getHexString())
+    g.fillStyle = grad
+    g.fillRect(0, 0, 4, 256)
+    sky.t.needsUpdate = true
+    scene.fog.color.copy(lerpColor(DAY.fog, NIGHT.fog, night))
+    scene.fog.far = 330 - night * 90
+    scene.environmentIntensity = 0.35 - night * 0.25
+    hemi.current.intensity = DAY.hemi + (NIGHT.hemi - DAY.hemi) * night
+    sun.current.intensity = DAY.sun + (NIGHT.sun - DAY.sun) * night
+    sun.current.color.copy(lerpColor('#fff3dc', '#9fb4ff', night))
+    amb.current.intensity = DAY.amb + (NIGHT.amb - DAY.amb) * night
+    cloudMat.color.copy(lerpColor(DAY.cloud, NIGHT.cloud, night))
+    sunBall.current.visible = night < 0.5
+    moon.current.visible = night > 0.3
+    starMat.opacity = Math.max(0, night * 1.2 - 0.2)
+    stars.current.visible = night > 0.05
+  })
   return (
     <>
-      <hemisphereLight args={['#dff4ff', '#e9d9a8', 1.1]} />
-      <directionalLight position={[40, 70, 30]} intensity={1.9} color="#fff3dc" />
-      <ambientLight intensity={0.25} />
-      {/* a big friendly sun + a few puffy clouds */}
-      <mesh position={[120, 110, -260]}>
+      <hemisphereLight ref={hemi} args={['#dff4ff', '#e9d9a8', DAY.hemi]} />
+      <directionalLight ref={sun} position={[40, 70, 30]} intensity={DAY.sun} color="#fff3dc" />
+      <ambientLight ref={amb} intensity={DAY.amb} />
+      {/* a big friendly sun by day, a moon by night, plus stars and a few puffy clouds */}
+      <mesh ref={sunBall} position={[120, 110, -260]}>
         <sphereGeometry args={[14, 24, 16]} />
         <meshBasicMaterial color="#fff7c2" fog={false} />
       </mesh>
+      <mesh ref={moon} position={[-140, 120, -240]} visible={false}>
+        <sphereGeometry args={[11, 24, 16]} />
+        <meshBasicMaterial color="#f4f1dc" fog={false} />
+      </mesh>
+      <points ref={stars} geometry={starGeo} material={starMat} visible={false} />
       {[[-90, 70, -220], [40, 85, -280], [180, 60, -120], [-200, 65, 40], [60, 75, 240]].map(([x, y, z], i) => (
         <group key={i} position={[x, y, z]}>
           {[[0, 0, 0, 14], [12, -2, 3, 10], [-12, -3, -2, 11], [4, 6, 0, 9]].map(([dx, dy, dz, r], k) => (
-            <mesh key={k} geometry={SPH} position={[dx, dy, dz]} scale={[r * 1.4, r * 0.8, r]}>
-              <meshBasicMaterial color="#ffffff" fog={false} />
-            </mesh>
+            <mesh key={k} geometry={SPH} material={cloudMat} position={[dx, dy, dz]} scale={[r * 1.4, r * 0.8, r]} />
           ))}
         </group>
       ))}
@@ -194,8 +252,10 @@ function Water() {
     return g
   }, [])
   const foamMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.6, depthWrite: false }), [])
+  const waterMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#18bccb', transparent: true, opacity: 0.72, roughness: 0.12, metalness: 0.15, depthWrite: false }), [])
   useFrame(({ clock }) => {
     const t = clock.elapsedTime
+    waterMat.color.copy(lerpColor('#18bccb', '#0c3d66', concert.timeline().night))
     water.current.position.y = Math.sin(t * 0.8) * 0.04
     foam.current.position.y = 0.05 + Math.sin(t * 0.8) * 0.04
     foam.current.scale.setScalar(1 + Math.sin(t * 0.8) * 0.006)
@@ -203,9 +263,8 @@ function Water() {
   })
   return (
     <>
-      <mesh ref={water} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh ref={water} rotation={[-Math.PI / 2, 0, 0]} material={waterMat}>
         <circleGeometry args={[600, 96]} />
-        <meshStandardMaterial color="#18bccb" transparent opacity={0.72} roughness={0.12} metalness={0.15} depthWrite={false} />
       </mesh>
       <mesh ref={foam} geometry={foamGeo} material={foamMat} />
       {/* deep ocean floor past the edge of the island mesh */}
@@ -407,25 +466,33 @@ function BigSign() {
 }
 
 // ---------- the empty stage, saved for the band
+const bannerMat = (sub, subColor) =>
+  new THREE.MeshBasicMaterial({
+    map: canvasTex(1024, 256, (g, w) => {
+      g.fillStyle = '#1d1d22'
+      g.fillRect(0, 0, w, 256)
+      g.textAlign = 'center'
+      g.fillStyle = '#ffd23f'
+      g.font = 'bold 84px "Arial Black", Impact, sans-serif'
+      g.fillText('THE TIKI TUXEDOS', w / 2, 105)
+      g.fillStyle = subColor
+      g.font = 'bold 56px system-ui, sans-serif'
+      g.fillText(sub, w / 2, 200)
+    }),
+  })
+
 function Stage() {
   const y0 = Math.max(heightAt(STAGE.x, STAGE.z), 0.5)
-  const banner = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        map: canvasTex(1024, 256, (g, w, h) => {
-          g.fillStyle = '#1d1d22'
-          g.fillRect(0, 0, w, h)
-          g.textAlign = 'center'
-          g.fillStyle = '#ffd23f'
-          g.font = 'bold 92px "Arial Black", Impact, sans-serif'
-          g.fillText('THE BAND', w / 2, 110)
-          g.fillStyle = '#ff4fa3'
-          g.font = 'bold 70px system-ui, sans-serif'
-          g.fillText('COMING SOON', w / 2, 205)
-        }),
-      }),
+  const show = useConcert()
+  const banners = useMemo(
+    () => ({
+      idle: bannerMat('talk to Golden Ryan Jr. to start!', '#ff4fa3'),
+      countdown: bannerMat('GET READY…', '#2ec4a6'),
+      show: bannerMat('★ LIVE ON RYAN JR. ISLAND ★', '#2ec4a6'),
+    }),
     [],
   )
+  const banner = banners[show.phase]
   const spots = useRef([])
   useFrame(({ clock }) => {
     spots.current.forEach((s, i) => s && (s.rotation.z = Math.sin(clock.elapsedTime * 0.8 + i * 1.3) * 0.35))
@@ -571,6 +638,8 @@ export default function Island() {
       <Hammock />
       <Flamingo />
       <Shark />
+      <Concert />
+      <Volcano />
       {TORCHES.map(([x, z], i) => (
         <Torch key={i} position={[x, heightAt(x, z), z]} />
       ))}

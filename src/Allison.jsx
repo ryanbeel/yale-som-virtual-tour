@@ -140,58 +140,7 @@ export default function Allison({ position, rotation = 0, front }) {
     <>
       <group ref={root} position={position} rotation={[0, rotation, 0]}>
         <mesh ref={hit} geometry={CYL} position={[0, 0.85, 0]} scale={[0.45, 1.7, 0.45]} visible={false} />
-
-        {/* riding boots + jeans */}
-        {[-1, 1].map((sx) => (
-          <group key={sx}>
-            <B g={BOX} c={BOOT} p={[0.085 * sx, 0.04, 0.035]} s={[0.1, 0.08, 0.23]} />
-            <B g={CYL} c={BOOT} p={[0.085 * sx, 0.24, 0]} s={[0.075, 0.42, 0.075]} />
-            <B g={CYL} c="#4a2c18" p={[0.085 * sx, 0.45, 0]} s={[0.079, 0.03, 0.079]} />
-            <B g={CYL} c={JEANS} p={[0.085 * sx, 0.68, 0]} s={[0.075, 0.48, 0.075]} />
-          </group>
-        ))}
-        <B g={CYL} c={JEANS} p={[0, 0.9, 0]} s={[0.17, 0.12, 0.13]} />
-
-        {/* pink hoodie with scallop patches (purple, teal, magenta) and a zipper */}
-        <mesh geometry={TORSO} material={m(HOODIE)} position={[0, 1.1, 0]} />
-        <B c={HOODIE} p={[0, 1.31, 0]} s={[0.22, 0.08, 0.15]} />
-        <B c={HOODIE} p={[0, 1.33, -0.1]} s={[0.15, 0.09, 0.08]} />
-        <B g={CYL} c="#2ec4a6" p={[0, 0.89, 0]} s={[0.192, 0.04, 0.16]} />
-        <B g={BOX} c="#d96aa6" p={[0, 1.1, 0.18]} s={[0.012, 0.44, 0.01]} />
-        {[[-0.08, 1.2, '#7a4fd1'], [0.09, 1.23, '#2ec4a6'], [0.1, 1.0, PINK], [-0.1, 0.98, '#2ec4a6'], [0.0, 1.27, '#7a4fd1']].map(([x, y, c], i) => (
-          <B key={i} c={c} p={[x, y, 0.175]} r={[0, 0, Math.PI]} s={[0.045, 0.028, 0.012]} />
-        ))}
-        <Arm side={1} upper={upL} lower={loL} />
-        <Arm side={-1} upper={upR} lower={loR} />
-
-        {/* head: long wavy brown hair, sunglasses up top, big smile, little gold necklace */}
-        <B g={CYL} c={SKIN} p={[0, 1.38, 0]} s={[0.042, 0.07, 0.042]} />
-        <B g={RING} c="#d9b45a" o={{ metalness: 0.8, roughness: 0.3 }} p={[0, 1.36, 0.02]} r={[Math.PI / 2 - 0.3, 0, 0]} s={[0.06, 0.06, 0.06]} />
-        <group ref={head} position={[0, 1.5, 0]}>
-          <B c={SKIN} p={[0, 0, 0]} s={[0.105, 0.125, 0.11]} />
-          <B g={CAPSPH} c={HAIR} o={{ roughness: 0.9 }} p={[0, 0.01, -0.01]} s={[0.115, 0.135, 0.12]} />
-          <B c={HAIR} o={{ roughness: 0.9 }} p={[0, -0.04, -0.06]} s={[0.13, 0.16, 0.09]} />
-          <B g={CAP} c={HAIR} o={{ roughness: 0.9 }} p={[0, -0.22, -0.08]} s={[0.12, 0.12, 0.06]} />
-          {[-1, 1].map((sx) => (
-            <group key={sx}>
-              {/* wavy side curtains down to her shoulders */}
-              <B g={CAP} c={HAIR} o={{ roughness: 0.9 }} p={[0.095 * sx, -0.08, 0.01]} s={[0.032, 0.08, 0.045]} />
-              <B c={HAIR} o={{ roughness: 0.9 }} p={[0.11 * sx, -0.24, -0.01]} s={[0.045, 0.06, 0.045]} />
-              <B c={HAIR} o={{ roughness: 0.9 }} p={[0.12 * sx, -0.33, -0.04]} s={[0.04, 0.055, 0.04]} />
-              {/* eyes, brows, rosy cheeks */}
-              <B c="#ffffff" p={[0.04 * sx, 0.015, 0.095]} s={[0.02, 0.016, 0.01]} />
-              <B c="#4a2e1c" p={[0.04 * sx, 0.015, 0.103]} s={[0.011, 0.012, 0.007]} />
-              <B g={BOX} c={HAIR} p={[0.042 * sx, 0.05, 0.1]} r={[0, 0, 0.15 * sx]} s={[0.04, 0.008, 0.008]} />
-              <B c="#f7a7b4" p={[0.065 * sx, -0.03, 0.09]} s={[0.022, 0.013, 0.008]} />
-              {/* sunglasses pushed up on her head */}
-              <B g={BOX} c="#141418" o={{ roughness: 0.2 }} p={[0.045 * sx, 0.115, 0.098]} r={[-0.5, 0, 0]} s={[0.052, 0.032, 0.014]} />
-            </group>
-          ))}
-          <B g={BOX} c="#141418" p={[0, 0.118, 0.1]} r={[-0.5, 0, 0]} s={[0.035, 0.009, 0.009]} />
-          <B c={SKIN} p={[0, -0.01, 0.11]} s={[0.016, 0.022, 0.018]} />
-          <mesh ref={mouth} geometry={SPH} material={m('#b8455a')} position={[0, -0.055, 0.1]} scale={[0.04, 0.012, 0.01]} />
-          <B g={BOX} c="#ffffff" p={[0, -0.048, 0.106]} s={[0.05, 0.008, 0.003]} />
-        </group>
+        <AllisonBody rig={{ head, mouth, upL, loL, upR, loR }} />
 
         <sprite ref={bubble} material={bubbleMats[0]} position={[0.25, 1.95, 0]} scale={[0.6, 0.3, 1]} />
       </group>
@@ -379,7 +328,7 @@ function DebateBanner({ position, rotation }) {
 }
 
 // the drum set everyone says she should play (she will not)
-function DrumSet({ position, rotation }) {
+export function DrumSet({ position, rotation }) {
   const crash = useRef()
   const head = useMemo(
     () =>
@@ -438,6 +387,66 @@ function DrumSet({ position, rotation }) {
       {[-0.03, 0.03].map((dx) => (
         <B key={dx} g={CYL} c="#e8d3a6" p={[-0.42 + dx, 0.72, 0.0]} r={[0, 0.4, Math.PI / 2]} s={[0.008, 0.35, 0.008]} />
       ))}
+    </group>
+  )
+}
+
+// Allison's body (classroom and the island band share it). Faces +z.
+// `rig` holds refs ({ head, mouth, upL, loL, upR, loR }) so the owner can animate it.
+export function AllisonBody({ rig }) {
+  return (
+    <group>
+      {/* riding boots + jeans */}
+      {[-1, 1].map((sx) => (
+        <group key={sx}>
+          <B g={BOX} c={BOOT} p={[0.085 * sx, 0.04, 0.035]} s={[0.1, 0.08, 0.23]} />
+          <B g={CYL} c={BOOT} p={[0.085 * sx, 0.24, 0]} s={[0.075, 0.42, 0.075]} />
+          <B g={CYL} c="#4a2c18" p={[0.085 * sx, 0.45, 0]} s={[0.079, 0.03, 0.079]} />
+          <B g={CYL} c={JEANS} p={[0.085 * sx, 0.68, 0]} s={[0.075, 0.48, 0.075]} />
+        </group>
+      ))}
+      <B g={CYL} c={JEANS} p={[0, 0.9, 0]} s={[0.17, 0.12, 0.13]} />
+
+      {/* pink hoodie with scallop patches (purple, teal, magenta) and a zipper */}
+      <mesh geometry={TORSO} material={m(HOODIE)} position={[0, 1.1, 0]} />
+      <B c={HOODIE} p={[0, 1.31, 0]} s={[0.22, 0.08, 0.15]} />
+      <B c={HOODIE} p={[0, 1.33, -0.1]} s={[0.15, 0.09, 0.08]} />
+      <B g={CYL} c="#2ec4a6" p={[0, 0.89, 0]} s={[0.192, 0.04, 0.16]} />
+      <B g={BOX} c="#d96aa6" p={[0, 1.1, 0.18]} s={[0.012, 0.44, 0.01]} />
+      {[[-0.08, 1.2, '#7a4fd1'], [0.09, 1.23, '#2ec4a6'], [0.1, 1.0, PINK], [-0.1, 0.98, '#2ec4a6'], [0.0, 1.27, '#7a4fd1']].map(([x, y, c], i) => (
+        <B key={i} c={c} p={[x, y, 0.175]} r={[0, 0, Math.PI]} s={[0.045, 0.028, 0.012]} />
+      ))}
+      <Arm side={1} upper={rig.upL} lower={rig.loL} />
+      <Arm side={-1} upper={rig.upR} lower={rig.loR} />
+
+      {/* head: long wavy brown hair, sunglasses up top, big smile, little gold necklace */}
+      <B g={CYL} c={SKIN} p={[0, 1.38, 0]} s={[0.042, 0.07, 0.042]} />
+      <B g={RING} c="#d9b45a" o={{ metalness: 0.8, roughness: 0.3 }} p={[0, 1.36, 0.02]} r={[Math.PI / 2 - 0.3, 0, 0]} s={[0.06, 0.06, 0.06]} />
+      <group ref={rig.head} position={[0, 1.5, 0]}>
+        <B c={SKIN} p={[0, 0, 0]} s={[0.105, 0.125, 0.11]} />
+        <B g={CAPSPH} c={HAIR} o={{ roughness: 0.9 }} p={[0, 0.01, -0.01]} s={[0.115, 0.135, 0.12]} />
+        <B c={HAIR} o={{ roughness: 0.9 }} p={[0, -0.04, -0.06]} s={[0.13, 0.16, 0.09]} />
+        <B g={CAP} c={HAIR} o={{ roughness: 0.9 }} p={[0, -0.22, -0.08]} s={[0.12, 0.12, 0.06]} />
+        {[-1, 1].map((sx) => (
+          <group key={sx}>
+            {/* wavy side curtains down to her shoulders */}
+            <B g={CAP} c={HAIR} o={{ roughness: 0.9 }} p={[0.095 * sx, -0.08, 0.01]} s={[0.032, 0.08, 0.045]} />
+            <B c={HAIR} o={{ roughness: 0.9 }} p={[0.11 * sx, -0.24, -0.01]} s={[0.045, 0.06, 0.045]} />
+            <B c={HAIR} o={{ roughness: 0.9 }} p={[0.12 * sx, -0.33, -0.04]} s={[0.04, 0.055, 0.04]} />
+            {/* eyes, brows, rosy cheeks */}
+            <B c="#ffffff" p={[0.04 * sx, 0.015, 0.095]} s={[0.02, 0.016, 0.01]} />
+            <B c="#4a2e1c" p={[0.04 * sx, 0.015, 0.103]} s={[0.011, 0.012, 0.007]} />
+            <B g={BOX} c={HAIR} p={[0.042 * sx, 0.05, 0.1]} r={[0, 0, 0.15 * sx]} s={[0.04, 0.008, 0.008]} />
+            <B c="#f7a7b4" p={[0.065 * sx, -0.03, 0.09]} s={[0.022, 0.013, 0.008]} />
+            {/* sunglasses pushed up on her head */}
+            <B g={BOX} c="#141418" o={{ roughness: 0.2 }} p={[0.045 * sx, 0.115, 0.098]} r={[-0.5, 0, 0]} s={[0.052, 0.032, 0.014]} />
+          </group>
+        ))}
+        <B g={BOX} c="#141418" p={[0, 0.118, 0.1]} r={[-0.5, 0, 0]} s={[0.035, 0.009, 0.009]} />
+        <B c={SKIN} p={[0, -0.01, 0.11]} s={[0.016, 0.022, 0.018]} />
+        <mesh ref={rig.mouth} geometry={SPH} material={m('#b8455a')} position={[0, -0.055, 0.1]} scale={[0.04, 0.012, 0.01]} />
+        <B g={BOX} c="#ffffff" p={[0, -0.048, 0.106]} s={[0.05, 0.008, 0.003]} />
+      </group>
     </group>
   )
 }

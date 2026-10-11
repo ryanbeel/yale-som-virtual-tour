@@ -426,3 +426,23 @@ body,
     opacity: 0;
   }
 }
+
+/* ---------- concert mute button */
+.mute {
+  position: fixed;
+  right: 112px;
+  top: 16px;
+  width: 36px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--black);
+  border: 1px solid var(--pink);
+  font-size: 15px;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.flash.erupt {
+  background: #ff7a1a;
+  animation-duration: 1.8s;
+}

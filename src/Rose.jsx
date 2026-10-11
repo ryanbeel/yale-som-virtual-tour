@@ -143,58 +143,7 @@ export default function Rose({ position, rotation = 0, front }) {
     <>
       <group ref={root} position={position} rotation={[0, rotation, 0]}>
         <mesh ref={hit} geometry={CYL} position={[0, 0.8, 0]} scale={[0.45, 1.6, 0.45]} visible={false} />
-
-        {/* light-blue sneakers with neatly tied bows (she can tie her shoes, thank you) */}
-        {[-1, 1].map((sx) => (
-          <group key={sx}>
-            <B g={BOX} c={SNEAKER} p={[0.075 * sx, 0.04, 0.03]} s={[0.09, 0.075, 0.2]} />
-            <B g={BOX} c="#ffffff" p={[0.075 * sx, 0.006, 0.03]} s={[0.095, 0.015, 0.205]} />
-            <B g={RING} c="#ffffff" p={[0.075 * sx - 0.018, 0.085, 0.07]} r={[Math.PI / 2, 0, 0.5]} s={0.016} />
-            <B g={RING} c="#ffffff" p={[0.075 * sx + 0.018, 0.085, 0.07]} r={[Math.PI / 2, 0, -0.5]} s={0.016} />
-            <B g={CYL} c={SKIN} p={[0.075 * sx, 0.29, 0]} s={[0.045, 0.44, 0.045]} />
-          </group>
-        ))}
-
-        {/* red polka-dot dress */}
-        <mesh geometry={SKIRT} material={polka()} position={[0, 0.69, 0]} />
-        <mesh geometry={BODICE} material={polka()} position={[0, 1.06, 0]} />
-        <B c={SKIN} p={[0, 1.22, 0.02]} s={[0.15, 0.05, 0.11]} />
-        {[-1, 1].map((sx) => (
-          <B key={sx} g={BOX} c={RED} p={[0.08 * sx, 1.22, 0]} s={[0.025, 0.06, 0.2]} />
-        ))}
-
-        {/* guitar on a black strap, slung across her front */}
-        <B g={BOX} c="#141418" p={[0, 1.04, 0.05]} r={[0, 0, -0.75]} s={[0.035, 0.52, 0.17]} />
-        <group position={[-0.02, 0.86, 0.19]} rotation={[0, 0, 0.45]}>
-          <Guitar />
-        </group>
-        <Arm side={-1} upper={upR} lower={loR} />
-        <Arm side={1} upper={upL} lower={loL} fist />
-
-        {/* head: messy top bun, sunglasses pushed up, brown eyes */}
-        <B g={CYL} c={SKIN} p={[0, 1.27, 0]} s={[0.038, 0.06, 0.038]} />
-        <group ref={head} position={[0, 1.38, 0]}>
-          <B c={SKIN} p={[0, 0, 0]} s={[0.1, 0.118, 0.105]} />
-          <B g={CAPSPH} c={HAIR} o={{ roughness: 0.95 }} p={[0, 0.008, -0.008]} s={[0.108, 0.126, 0.113]} />
-          <B c={HAIR} o={{ roughness: 0.95 }} p={[0, 0.15, -0.02]} s={[0.065, 0.055, 0.065]} />
-          <B c={HAIR} o={{ roughness: 0.95 }} p={[0.03, 0.18, 0.0]} s={[0.035, 0.03, 0.035]} />
-          <B c={HAIR} o={{ roughness: 0.95 }} p={[-0.035, 0.17, -0.03]} s={[0.03, 0.035, 0.03]} />
-          {[-1, 1].map((sx) => (
-            <group key={sx}>
-              <B g={CAP} c={HAIR} o={{ roughness: 0.95 }} p={[0.092 * sx, -0.05, 0.02]} r={[0, 0, 0.1 * sx]} s={[0.02, 0.05, 0.03]} />
-              <B c="#ffffff" p={[0.038 * sx, 0.012, 0.09]} s={[0.019, 0.016, 0.01]} />
-              <B c="#3a2414" p={[0.038 * sx, 0.012, 0.098]} s={[0.011, 0.012, 0.007]} />
-              <B g={BOX} c={HAIR} p={[0.04 * sx, 0.045, 0.096]} r={[0, 0, 0.12 * sx]} s={[0.036, 0.009, 0.008]} />
-              <B c="#e88a7a" p={[0.06 * sx, -0.03, 0.085]} s={[0.018, 0.011, 0.007]} />
-              {/* rose-tinted sunglasses pushed up on her head */}
-              <B c="#e8a090" o={{ roughness: 0.15, transparent: true, opacity: 0.85 }} p={[0.042 * sx, 0.105, 0.088]} r={[-0.55, 0, 0]} s={[0.036, 0.03, 0.01]} />
-              <B g={RING} c="#c9a44a" o={{ metalness: 0.8, roughness: 0.3 }} p={[0.042 * sx, 0.105, 0.09]} r={[-0.55, 0, 0]} s={[0.037, 0.031, 0.04]} />
-            </group>
-          ))}
-          <B c={SKIN} p={[0, -0.01, 0.103]} s={[0.015, 0.02, 0.016]} />
-          <mesh ref={mouth} geometry={SPH} material={m('#a83b4a')} position={[0, -0.05, 0.094]} scale={[0.035, 0.011, 0.009]} />
-          <B g={BOX} c="#ffffff" p={[0, -0.044, 0.1]} s={[0.042, 0.007, 0.003]} />
-        </group>
+        <RoseBody rig={{ head, mouth, upL, loL, upR, loR }} />
 
         <sprite ref={bubble} material={bubbleMats[0]} position={[0.25, 1.85, 0]} scale={[0.66, 0.33, 1]} />
       </group>
@@ -359,6 +308,66 @@ function Certificate({ position, rotation }) {
       <mesh material={mat} position={[0, 0.82, 0.093]} rotation={[-0.15, 0, 0]}>
         <planeGeometry args={[0.54, 0.405]} />
       </mesh>
+    </group>
+  )
+}
+
+// Rose's body, guitar included (classroom and the island band share it). Faces +z.
+// `rig` holds refs ({ head, mouth, upL, loL, upR, loR }) so the owner can animate it.
+export function RoseBody({ rig }) {
+  return (
+    <group>
+      {/* light-blue sneakers with neatly tied bows (she can tie her shoes, thank you) */}
+      {[-1, 1].map((sx) => (
+        <group key={sx}>
+          <B g={BOX} c={SNEAKER} p={[0.075 * sx, 0.04, 0.03]} s={[0.09, 0.075, 0.2]} />
+          <B g={BOX} c="#ffffff" p={[0.075 * sx, 0.006, 0.03]} s={[0.095, 0.015, 0.205]} />
+          <B g={RING} c="#ffffff" p={[0.075 * sx - 0.018, 0.085, 0.07]} r={[Math.PI / 2, 0, 0.5]} s={0.016} />
+          <B g={RING} c="#ffffff" p={[0.075 * sx + 0.018, 0.085, 0.07]} r={[Math.PI / 2, 0, -0.5]} s={0.016} />
+          <B g={CYL} c={SKIN} p={[0.075 * sx, 0.29, 0]} s={[0.045, 0.44, 0.045]} />
+        </group>
+      ))}
+
+      {/* red polka-dot dress */}
+      <mesh geometry={SKIRT} material={polka()} position={[0, 0.69, 0]} />
+      <mesh geometry={BODICE} material={polka()} position={[0, 1.06, 0]} />
+      <B c={SKIN} p={[0, 1.22, 0.02]} s={[0.15, 0.05, 0.11]} />
+      {[-1, 1].map((sx) => (
+        <B key={sx} g={BOX} c={RED} p={[0.08 * sx, 1.22, 0]} s={[0.025, 0.06, 0.2]} />
+      ))}
+
+      {/* guitar on a black strap, slung across her front */}
+      <B g={BOX} c="#141418" p={[0, 1.04, 0.05]} r={[0, 0, -0.75]} s={[0.035, 0.52, 0.17]} />
+      <group position={[-0.02, 0.86, 0.19]} rotation={[0, 0, 0.45]}>
+        <Guitar />
+      </group>
+      <Arm side={-1} upper={rig.upR} lower={rig.loR} />
+      <Arm side={1} upper={rig.upL} lower={rig.loL} fist />
+
+      {/* head: messy top bun, sunglasses pushed up, brown eyes */}
+      <B g={CYL} c={SKIN} p={[0, 1.27, 0]} s={[0.038, 0.06, 0.038]} />
+      <group ref={rig.head} position={[0, 1.38, 0]}>
+        <B c={SKIN} p={[0, 0, 0]} s={[0.1, 0.118, 0.105]} />
+        <B g={CAPSPH} c={HAIR} o={{ roughness: 0.95 }} p={[0, 0.008, -0.008]} s={[0.108, 0.126, 0.113]} />
+        <B c={HAIR} o={{ roughness: 0.95 }} p={[0, 0.15, -0.02]} s={[0.065, 0.055, 0.065]} />
+        <B c={HAIR} o={{ roughness: 0.95 }} p={[0.03, 0.18, 0.0]} s={[0.035, 0.03, 0.035]} />
+        <B c={HAIR} o={{ roughness: 0.95 }} p={[-0.035, 0.17, -0.03]} s={[0.03, 0.035, 0.03]} />
+        {[-1, 1].map((sx) => (
+          <group key={sx}>
+            <B g={CAP} c={HAIR} o={{ roughness: 0.95 }} p={[0.092 * sx, -0.05, 0.02]} r={[0, 0, 0.1 * sx]} s={[0.02, 0.05, 0.03]} />
+            <B c="#ffffff" p={[0.038 * sx, 0.012, 0.09]} s={[0.019, 0.016, 0.01]} />
+            <B c="#3a2414" p={[0.038 * sx, 0.012, 0.098]} s={[0.011, 0.012, 0.007]} />
+            <B g={BOX} c={HAIR} p={[0.04 * sx, 0.045, 0.096]} r={[0, 0, 0.12 * sx]} s={[0.036, 0.009, 0.008]} />
+            <B c="#e88a7a" p={[0.06 * sx, -0.03, 0.085]} s={[0.018, 0.011, 0.007]} />
+            {/* rose-tinted sunglasses pushed up on her head */}
+            <B c="#e8a090" o={{ roughness: 0.15, transparent: true, opacity: 0.85 }} p={[0.042 * sx, 0.105, 0.088]} r={[-0.55, 0, 0]} s={[0.036, 0.03, 0.01]} />
+            <B g={RING} c="#c9a44a" o={{ metalness: 0.8, roughness: 0.3 }} p={[0.042 * sx, 0.105, 0.09]} r={[-0.55, 0, 0]} s={[0.037, 0.031, 0.04]} />
+          </group>
+        ))}
+        <B c={SKIN} p={[0, -0.01, 0.103]} s={[0.015, 0.02, 0.016]} />
+        <mesh ref={rig.mouth} geometry={SPH} material={m('#a83b4a')} position={[0, -0.05, 0.094]} scale={[0.035, 0.011, 0.009]} />
+        <B g={BOX} c="#ffffff" p={[0, -0.044, 0.1]} s={[0.042, 0.007, 0.003]} />
+      </group>
     </group>
   )
 }
