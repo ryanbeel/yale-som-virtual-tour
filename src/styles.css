@@ -446,3 +446,40 @@ body,
   background: #ff7a1a;
   animation-duration: 1.8s;
 }
+
+/* ---------- the shark lands on stage */
+.shark-solo {
+  position: fixed;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  font: 900 clamp(36px, 9vw, 96px) / 1 'Arial Black', Impact, system-ui, sans-serif;
+  color: #ffd23f;
+  -webkit-text-stroke: 3px #1d1d22;
+  text-shadow: 0 0 24px #ff4fa3, 0 0 48px #2ec4a6;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 25;
+  animation: shark-solo 3.2s ease-out forwards;
+}
+
+@keyframes shark-solo {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2) rotate(-12deg);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.25) rotate(4deg);
+  }
+  22% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}

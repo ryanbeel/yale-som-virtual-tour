@@ -202,6 +202,40 @@ function lead(t, midi, dur, v = 1) {
     x.stop(t + dur + 0.05)
   }
 }
+// a rising whoosh (the shark is in the air)
+function riser(t, dur) {
+  const f = filter('bandpass', 400, 3)
+  f.frequency.setValueAtTime(400, t)
+  f.frequency.exponentialRampToValueAtTime(7000, t + dur)
+  const g = ctx.createGain()
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.6, t + dur)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05)
+  g.connect(mix)
+  noiseSrc(t, dur + 0.1).connect(f).connect(g)
+}
+
+// the shark lands: a huge distorted power chord
+function powerChord(t, root) {
+  const shaper = ctx.createWaveShaper()
+  const curve = new Float32Array(256)
+  for (let i = 0; i < 256; i++) {
+    const x = (i / 128) - 1
+    curve[i] = Math.tanh(x * 6)
+  }
+  shaper.curve = curve
+  const g = env(t, 0.32, 2.4, 0.005)
+  shaper.connect(filter('lowpass', 3200)).connect(g)
+  for (const n of [root, root + 7, root + 12, root + 19]) {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.value = hz(n)
+    o.connect(shaper)
+    o.start(t)
+    o.stop(t + 2.6)
+  }
+}
+
 // the eruption: a deep falling rumble plus an explosion of noise
 function boom(t) {
   const o = ctx.createOscillator()
@@ -270,6 +304,14 @@ function playStep(i, t) {
 
   // drums
   if (s === 0 && sec !== prev) crash(t)
+  if (bar === 31 && s >= 8) {
+    if (s === 8) riser(t, stepDur * 8)
+    return
+  }
+  if (bar === 32 && s === 0) {
+    powerChord(t, 52)
+    kick(t, 1.3)
+  }
   if (sec === 'volcano') {
     if (bar === 24 && s === 0) boom(t)
     if (s === 0) crash(t)
@@ -312,6 +354,9 @@ function playStep(i, t) {
 
   // surf guitar: tremolo-picked chord tones
   if (sec === 'verse' || sec === 'chorus' || sec === 'volcano') guitar(t, ch.triad[(s >> 1) % 3] + (sec === 'verse' ? -12 : 0), sec === 'verse' ? 0.8 : 1.15)
+
+  // shark shred solo: fast high chord-tone runs for 4 bars after it lands
+  if (bar >= 32 && bar < 36) guitar(t, ch.triad[s % 3] + 12 + (s % 4 === 3 ? 12 : 0), 1.7)
 
   // lead hook (an octave down and softer in the second verse)
   if (s % 2 === 0) {

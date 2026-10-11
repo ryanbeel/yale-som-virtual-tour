@@ -9,10 +9,17 @@ export const COUNTDOWN = 20
 export const SHOW = 90
 export const BPM = 128
 export const ERUPT_AT = 45 // seconds into the show (bar 24 of the song)
+// the shark's big moment: it races in behind the stage, leaps, and lands on stage with an electric
+// guitar right as the final chorus hits (bar 32 = 60 s)
+export const SHARK_APPROACH = 55.5
+export const SHARK_LEAP = 57.5
+export const SHARK_LAND = 60
+// where the shark is during its stunt (Shark writes it, the stage spotlights aim at it)
+export const sharkSpot = { x: 0, y: 0, z: 0 }
 const DUSK = 8 // seconds of sunset at the end of the countdown
 const DAWN = 6 // seconds for daylight to come back after the show
 
-let state = { phase: 'idle', start: 0, muted: false, erupted: false, endedAt: -Infinity }
+let state = { phase: 'idle', start: 0, muted: false, erupted: false, shark: false, endedAt: -Infinity }
 const listeners = new Set()
 const emit = (patch) => {
   state = { ...state, ...patch }
@@ -30,7 +37,7 @@ export const concert = {
   start() {
     if (state.phase !== 'idle') return
     music.prime()
-    emit({ phase: 'countdown', start: now(), erupted: false })
+    emit({ phase: 'countdown', start: now(), erupted: false, shark: false })
   },
   // advance the phases; Concert calls this every frame
   tick() {
@@ -40,9 +47,11 @@ export const concert = {
       emit({ phase: 'show' })
     } else if (state.phase === 'show' && !state.erupted && t >= COUNTDOWN + ERUPT_AT) {
       emit({ erupted: true })
+    } else if (state.phase === 'show' && !state.shark && t >= COUNTDOWN + SHARK_LAND) {
+      emit({ shark: true })
     } else if (state.phase === 'show' && t >= COUNTDOWN + SHOW) {
       music.stop()
-      emit({ phase: 'idle', erupted: false, endedAt: now() })
+      emit({ phase: 'idle', erupted: false, shark: false, endedAt: now() })
     }
   },
   // where we are: seconds left in the countdown, seconds into the show, beat number, seconds since
@@ -69,7 +78,7 @@ export const concert = {
   },
   reset() {
     music.stop()
-    if (state.phase !== 'idle') emit({ phase: 'idle', erupted: false, endedAt: -Infinity })
+    if (state.phase !== 'idle') emit({ phase: 'idle', erupted: false, shark: false, endedAt: -Infinity })
   },
 }
 

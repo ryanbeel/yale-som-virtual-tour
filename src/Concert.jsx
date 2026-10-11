@@ -5,7 +5,7 @@ import { AllisonBody, DrumSet, RyanJr } from './Allison.jsx'
 import { RoseBody } from './Rose.jsx'
 import { GEO, Parts, dinoParts, monsterParts } from './TikiParty.jsx'
 import { useTalkable } from './talkable.js'
-import { BPM, ERUPT_AT, concert, useConcert } from './concert.js'
+import { BPM, ERUPT_AT, SHARK_LAND, SHARK_LEAP, concert, sharkSpot, useConcert } from './concert.js'
 import { blip } from './music.js'
 import { AUDIENCE, GOLDEN, STAGE, heightAt } from './island.js'
 
@@ -141,7 +141,11 @@ const VOLCANO_LINES = [
   'MORE FIREWORKS!!!',
   'This party is LITERALLY lit',
   'Ryan Jr. planned this, right?',
+  'THE SHARK IS SHREDDING!!!',
+  'Shark solo! SHARK SOLO!',
 ]
+// the few seconds after the shark lands on stage
+const hype = (showT) => showT >= SHARK_LAND && showT < SHARK_LAND + 2.6
 
 // ---------- the whole show
 export default function Concert() {
@@ -164,6 +168,7 @@ export default function Concert() {
         <CountdownSign />
         <Band />
         <StageLights />
+        <SharkMoment />
       </group>
       <Crowd />
       <Fireworks />
@@ -415,6 +420,9 @@ const VOLCANO_CUES = [
   [45.3, 'allison', "IT'S A VOLCANO!!! KEEP PLAYING!!!"],
   [48.7, 'rose', 'LAVA + GRUNGE = PERFECT!!'],
   [52.1, 'allison', 'Best. Worst. Day. EVER!'],
+  [56.0, 'rose', 'Wait… is the shark coming HERE?!'],
+  [60.3, 'rose', 'A SHARK?! ON GUITAR?!'],
+  [63.8, 'allison', 'Okay… that shark can SHRED.'],
 ]
 
 // random facts above Allison and Rose, taking turns
@@ -464,6 +472,52 @@ function FactBubbles() {
   )
 }
 
+// ---------- the shark lands: fire jets across the front of the stage and a shockwave over the crowd
+const JET = new THREE.ConeGeometry(1, 1, 16)
+function SharkMoment() {
+  const jets = useRef([])
+  const rings = useRef([])
+  const fire = useRef()
+  const outer = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ff7a1a' }), [])
+  const inner = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffe066' }), [])
+  const ringMats = useMemo(() => ['#ffffff', '#2ec4a6'].map((c) => new THREE.MeshBasicMaterial({ color: c, transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })), [])
+  useFrame(({ clock }) => {
+    const { showT } = concert.timeline()
+    const a = showT - SHARK_LAND
+    const burst = a >= 0 && a < 3 ? 1 : (a >= 1.875 && a < 2.4) || (a >= 3.75 && a < 4.3) ? 0.7 : 0
+    jets.current.forEach((j, i) => {
+      if (!j) return
+      j.visible = burst > 0
+      const h = (4.2 + Math.sin(clock.elapsedTime * 30 + i * 2) * 0.8) * burst
+      j.scale.set(1, Math.max(0.01, h), 1)
+    })
+    fire.current.intensity = burst * 60
+    rings.current.forEach((r, i) => {
+      if (!r) return
+      const u = a - i * 0.18
+      r.visible = u >= 0 && u < 1.2
+      r.scale.setScalar(1 + u * 24)
+      ringMats[i].opacity = Math.max(0, 1 - u / 1.2)
+    })
+  })
+  return (
+    <>
+      {[-4.6, -3.0, 3.0, 4.6].map((x, i) => (
+        <group key={x} ref={(el) => (jets.current[i] = el)} position={[x, DECK, STAGE.d / 2 - 0.2]} visible={false}>
+          <mesh geometry={JET} material={outer} position={[0, 0.5, 0]} scale={[0.45, 1, 0.45]} />
+          <mesh geometry={JET} material={inner} position={[0, 0.35, 0]} scale={[0.22, 0.7, 0.22]} />
+        </group>
+      ))}
+      <pointLight ref={fire} color="#ff7a1a" intensity={0} distance={30} decay={1.2} position={[0, DECK + 2.5, STAGE.d / 2 + 1]} />
+      {ringMats.map((mt, i) => (
+        <mesh key={i} ref={(el) => (rings.current[i] = el)} material={mt} position={[-1.3, DECK + 0.03, 2.1]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+          <ringGeometry args={[0.85, 1, 64]} />
+        </mesh>
+      ))}
+    </>
+  )
+}
+
 // ---------- stage lights: sweeping beams, a flashing wash light, a disco ball, smoke
 function StageLights() {
   const show = useConcert()
@@ -489,11 +543,30 @@ function StageLights() {
     const { beat, erupt } = concert.timeline()
     const wild = erupt >= 0
     const f = wild ? 2.6 : 1 // everything sweeps faster once the volcano blows
+    const { showT } = concert.timeline()
+    // from takeoff until a few seconds after landing, every spotlight tracks the shark
+    const onShark = showT >= SHARK_LEAP && showT < SHARK_LAND + 4
+    // shark position in stage-local coordinates (the stage is turned a quarter turn to face east)
+    const sy = STAGE_Y()
+    const target = [-(sharkSpot.z - STAGE.z), sharkSpot.y - sy, sharkSpot.x - STAGE.x]
     beams.current.forEach((b, i) => {
       if (!b) return
       b.visible = on
-      b.rotation.set(-0.95 - Math.sin(t * 0.9 * f + i) * 0.25, Math.sin(t * 0.7 * f + i * 1.7) * 0.6, 0)
-      beamMats[i].opacity = 0.12 + (beat >= 0 ? Math.max(0, 1 - (beat % 1) * 3) * 0.18 : 0)
+      b.rotation.order = 'YXZ'
+      if (onShark) {
+        // every spotlight snaps onto the shark
+        const dx = target[0] - [-3, -1, 1, 3][i]
+        const dy = target[1] - 5.15
+        const dz = target[2] + STAGE.d / 2 - 0.88
+        // tilt toward the target, then turn; works above the light too (the beam flips upward)
+        b.rotation.set(-Math.atan2(Math.hypot(dx, dz), -dy), Math.atan2(dx, dz), 0)
+        beamMats[i].color.set('#ffffff')
+        beamMats[i].opacity = 0.35
+      } else {
+        b.rotation.set(-0.95 - Math.sin(t * 0.9 * f + i) * 0.25, Math.sin(t * 0.7 * f + i * 1.7) * 0.6, 0)
+        beamMats[i].color.set(['#ff4fa3', '#2ec4a6', '#ffd23f', '#7a4fd1'][i])
+        beamMats[i].opacity = 0.12 + (beat >= 0 ? Math.max(0, 1 - (beat % 1) * 3) * 0.18 : 0)
+      }
     })
     // strobe: white flashes on every half beat after the eruption
     const strobe = wild && (beat * 2) % 1 < 0.12
@@ -634,6 +707,8 @@ function CrowdInstanced({ dinos }) {
         if (u < 1) {
           yaw = Math.atan2(d.to[0] - d.from[0], d.to[1] - d.from[1])
           y = Math.abs(Math.sin(showT * 9)) * 0.15
+        } else if (hype(showT)) {
+          y = Math.abs(Math.sin((showT - SHARK_LAND) * Math.PI * 2.2)) * 1.6
         } else {
           y = Math.abs(Math.sin((beat + d.phase) * Math.PI)) * 0.5 * wild
           yaw += Math.sin(beat * 0.5 + d.phase) * 0.3 * wild
@@ -662,12 +737,13 @@ function CrowdInstanced({ dinos }) {
       const sp = sprites.current[i]
       if (sp) {
         const k = Math.floor((showT + d.talkOffset) / d.talkEvery)
-        const talking = shown[i] && u >= 1 && (showT + d.talkOffset) % d.talkEvery < 2.6
+        const screaming = hype(showT) && shown[i] && i % 3 === 0
+        const talking = screaming || (shown[i] && u >= 1 && (showT + d.talkOffset) % d.talkEvery < 2.6)
         const pool = erupt >= 0 ? VOLCANO_LINES : CROWD_LINES
-        const key = `${erupt >= 0}${k}`
+        const key = screaming ? 'shark' : `${erupt >= 0}${k}`
         if (talking && lines.current[i] !== key) {
           lines.current[i] = key
-          sp.material = textBubble(pool[(d.line + k * 7) % pool.length], erupt >= 0 ? '#ff7a1a' : '#2ec4a6')
+          sp.material = screaming ? textBubble('SHAAAARK!!!', '#1d6fa8') : textBubble(pool[(d.line + k * 7) % pool.length], erupt >= 0 ? '#ff7a1a' : '#2ec4a6')
         }
         sp.visible = talking
         sp.position.set(x, y + 2.3, z)

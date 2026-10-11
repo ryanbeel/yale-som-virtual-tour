@@ -93,6 +93,12 @@ export default function App() {
       )}
       {here.flash > 0 && <div key={here.flash} className="flash" />}
       {here.name === 'island' && show.erupted && <div className="flash erupt" />}
+      {here.name === 'island' && show.shark && (
+        <>
+          <div className="flash" />
+          <div className="shark-solo">🦈 SHARK SOLO! 🦈</div>
+        </>
+      )}
 
       {!playing && !talkingTo && (
         <div className="overlay" onClick={() => (isTouch ? setTouch(true) : lockRef.current?.())}>
