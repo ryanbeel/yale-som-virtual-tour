@@ -10,6 +10,7 @@ import Concert from './Concert.jsx'
 import { concert, useConcert } from './concert.js'
 import Volcano from './Volcano.jsx'
 import DoNotPress, { stormDark } from './DoNotPress.jsx'
+import War from './War.jsx'
 import { press } from './donotpress.js'
 import { Torch, Totem } from './TikiParty.jsx'
 import {
@@ -646,6 +647,7 @@ export default function Island() {
       <Concert />
       <Volcano />
       <DoNotPress />
+      <War />
       {TORCHES.map(([x, z], i) => (
         <Torch key={i} position={[x, heightAt(x, z), z]} />
       ))}

@@ -9,6 +9,7 @@ import ChatWindow from './ChatWindow.jsx'
 import { chat, talkTo, useChat } from './chat.js'
 import { concert, useConcert } from './concert.js'
 import { SNEEZES, T as PRESS, usePress } from './donotpress.js'
+import { W as WAR_T, useWar } from './war.js'
 import { EYE, SPAWN, collide, floorAt, locate } from './layout.js'
 import * as island from './island.js'
 import { useWorld } from './world.js'
@@ -40,6 +41,25 @@ export default function App() {
   const here = useWorld()
   const show = useConcert()
   const pressed = usePress()
+  const battle = useWar()
+  // the war shakes the screen: the march, the clash, the giants arriving, the mega-explosion
+  useEffect(() => {
+    if (!battle.active) return
+    const body = document.body.classList
+    const at = (s, fn) => setTimeout(fn, s * 1000)
+    const quake = (s, len) => [at(s, () => body.add('quake')), at(s + len, () => body.remove('quake'))]
+    const timers = [
+      at(WAR_T.MARCH, () => body.add('rumble')),
+      at(WAR_T.CLASH + 1.5, () => body.remove('rumble')),
+      ...quake(WAR_T.CLASH, 0.9),
+      ...quake(WAR_T.REINFORCE, 1.2),
+      ...quake(WAR_T.MEGA, 2),
+    ]
+    return () => {
+      timers.forEach(clearTimeout)
+      body.remove('rumble', 'quake')
+    }
+  }, [battle.active, battle.plays])
   // DO NOT PRESS: shake the screen while the giant rises, hard on the sneeze, gently while he purrs
   useEffect(() => {
     if (!pressed.active) return
@@ -146,6 +166,22 @@ export default function App() {
             </>
           )}
           {pressed.stage === 'bless' && <div className="event-title soft">bless you. 🐾</div>}
+        </>
+      )}
+      {here.name === 'island' && battle.active && (
+        <>
+          {battle.stage === 'game' && <div className="event-title soft">🎲 game night 🎲</div>}
+          {battle.stage === 'cheat' && <div className="event-title red wrap">🚨 THE TIKI CHEATED 🚨</div>}
+          {battle.stage === 'war' && <div className="event-title wrap">⚔️ THE GREAT TIKI–DINO WAR ⚔️</div>}
+          {battle.stage === 'charge' && <div className="event-title huge charge">CHAAAARGE!!!</div>}
+          {battle.stage === 'reinforce' && <div className="event-title red wrap">⚠️ REINFORCEMENTS ⚠️</div>}
+          {battle.stage === 'mega' && (
+            <>
+              <div className="flash long" />
+              <div className="event-title mega">💥💥💥</div>
+            </>
+          )}
+          {battle.stage === 'heap' && <div className="event-title soft wrap">Nobody won. Everybody flew.</div>}
         </>
       )}
       {here.name === 'island' && show.shark && (

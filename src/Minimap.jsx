@@ -159,6 +159,12 @@ function drawIsland(g) {
   g.beginPath()
   g.arc(nx, ny, 4, 0, Math.PI * 2)
   g.fill()
+  // GAME NIGHT (the war button)
+  const [wx, wy] = ipx(I.WAR_BUTTON.x, I.WAR_BUTTON.z)
+  g.fillStyle = '#2ec44a'
+  g.beginPath()
+  g.arc(wx, wy, 4, 0, Math.PI * 2)
+  g.fill()
   // portal home
   const [ox, oy] = ipx(I.RETURN_PORTAL.x, I.RETURN_PORTAL.z)
   g.fillStyle = '#ff4fa3'
@@ -174,6 +180,8 @@ function drawIsland(g) {
   g.fillText('HOME', ox + 6, oy + 3)
   g.fillStyle = '#ff6b6b'
   g.fillText('???', nx + 6, ny + 3)
+  g.fillStyle = '#9dffb0'
+  g.fillText('GAME', wx - 30, wy + 3)
   g.fillText('N ↑', IW - 22, 12)
 }
 

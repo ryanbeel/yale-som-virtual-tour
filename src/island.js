@@ -37,7 +37,7 @@ export const SIGN = { x: 0, z: 4 }
 export const RETURN_PORTAL = { x: 0, z: 42 }
 export const STAGE = { x: -24, z: 17, w: 11, d: 7, rot: Math.PI / 2 } // faces east toward the plaza
 export const BAR = { x: 22, z: 20, rot: -Math.PI / 2 } // faces west toward the plaza
-export const HUTS = [[-32, -6, 0.6], [-14, -28, 0.2], [-40, 30, 2.4], [38, 10, -1.2], [10, -46, 0.1]]
+export const HUTS = [[-40, 30, 2.4], [38, 10, -1.2], [10, -46, 0.1], [-44, -2, 0.6]]
 export const HAMMOCK = { a: [16, 42], b: [21, 40] }
 // concert: Golden Ryan Jr. (talk to him to start the show) and the audience area in front of the stage
 export const GOLDEN = { x: -14, z: 28 }
@@ -45,6 +45,11 @@ export const AUDIENCE = { x0: -18, x1: -8.5, z0: 10, z1: 24 }
 // the DO NOT PRESS button on the south beach, and where the giant Ryan Jr. rises out of the sea
 export const BUTTON = { x: 8, z: 46.5 }
 export const GIANT = { x: 8, z: 108 }
+// the Great Tiki-Dino War: a battlefield across the middle of the island (dinos form up near the north
+// shore, tikis just north of the big sign), plus the game table and GAME NIGHT button beside the sign
+export const WAR = { x0: -32, x1: 8, zDino: -40.5, zTiki: -4.5, zMid: -22 }
+export const WAR_BUTTON = { x: -19, z: 7.5 }
+export const GAME_TABLE = { x: -25, z: 6 }
 
 function rand(seed) {
   let s = seed >>> 0
@@ -59,6 +64,7 @@ const clear = (x, z, pad = 0) => {
   if (Math.hypot(x - RETURN_PORTAL.x, z - RETURN_PORTAL.z) < 5 + pad) return false
   if (Math.hypot(x - GOLDEN.x, z - GOLDEN.z) < 4 + pad) return false
   if (Math.hypot(x - BUTTON.x, z - BUTTON.z) < 8 + pad) return false
+  if (x > WAR.x0 - 4 + pad && x < WAR.x1 + 4 && z > WAR.zDino - 8 && z < WAR_BUTTON.z + 3) return false // battlefield
   if (x > AUDIENCE.x0 - 2 && x < AUDIENCE.x1 + 2 && z > AUDIENCE.z0 - 2 && z < AUDIENCE.z1 + 2) return false
   if (Math.hypot(x - CRATER.x, z - CRATER.z) < CRATER.r + 7 + pad) return false
   if (HUTS.some(([hx, hz]) => Math.hypot(x - hx, z - hz) < 5 + pad)) return false
@@ -111,6 +117,8 @@ const POSTS = () => [
   [BAR.x, BAR.z, 2.6],
   [GOLDEN.x, GOLDEN.z, 0.9],
   [BUTTON.x, BUTTON.z, 0.7],
+  [WAR_BUTTON.x, WAR_BUTTON.z, 0.7],
+  [GAME_TABLE.x, GAME_TABLE.z, 1.0],
 ]
 let posts
 export function collide(pos) {
@@ -156,9 +164,11 @@ export function locate(x, z) {
   let where = 'Beach'
   if (inWater(x, z)) where = 'In the water… watch out for the shark!'
   else if (at(MACHINE, 5)) where = 'Clone-O-Matic 3000'
+  else if (at(WAR_BUTTON, 4) || at(GAME_TABLE, 3)) where = 'Game night 🎲'
   else if (Math.abs(x - STAGE.x) < STAGE.d / 2 + 3 && Math.abs(z - STAGE.z) < STAGE.w / 2 + 3) where = 'The Stage'
   else if (at(GOLDEN, 3)) where = 'Golden Ryan Jr.'
   else if (at(BUTTON, 4)) where = 'DO NOT PRESS'
+  else if (x > WAR.x0 && x < WAR.x1 && z > WAR.zDino - 4 && z < WAR.zTiki + 3) where = 'The Battlefield'
   else if (at(BAR, 7)) where = 'Tiki Bar'
   else if (at(CRATER, CRATER.r + 6)) where = 'Diamond Head crater'
   else if (at(PLAZA, PLAZA.r + 6) || onPath(x, z)) where = 'Arrival Plaza'

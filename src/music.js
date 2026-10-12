@@ -670,3 +670,314 @@ function rumbleSfx(t, dur, level, pulse = 0) {
   }
   src.connect(f).connect(g).connect(mix)
 }
+
+// ---------- THE GREAT TIKI-DINO WAR: an epic battle score (~72 s), scheduled on the fly like the song.
+// Steps are 16th notes at 150 BPM (0.1 s). One-shot effects (cannons, stingers) ride along by time.
+let warTimer = null
+export function stopWarMusic() {
+  if (warTimer) clearInterval(warTimer)
+  warTimer = null
+}
+
+export function warMusic({ W, CANNON_SHOTS, FLIGHT }) {
+  prime()
+  if (!ctx) return
+  stopWarMusic()
+  const t0 = ctx.currentTime + 0.05
+  const STEP = 0.1
+  const total = Math.ceil(W.END / STEP)
+  // one-shots, by time
+  const shots = [
+    [W.ROCK, () => blipAt(t0 + W.ROCK, 1047)],
+    [W.PAPER, () => blipAt(t0 + W.PAPER, 1319)],
+    [W.SCISSORS, () => blipAt(t0 + W.SCISSORS, 1568)],
+    [W.SHOOT, (t) => chordHit(t, [72, 76, 79, 84], 0.4)],
+    [W.TIKI_LATE, (t) => noiseSrc(t, 0.2).connect(filter('bandpass', 1800, 1)).connect(env(t, 0.6, 0.15))], // slap!
+    [W.TIKI_LATE + 0.7, (t) => scratch(t)],
+    [W.CHEAT, (t) => dunDunDun(t)],
+    [W.FLIP, (t) => { crash(t); noiseSrc(t, 0.8).connect(filter('bandpass', 600, 0.7)).connect(env(t, 0.5, 0.7, 0.1)) }],
+    [W.MARCH + 0.5, (t) => horn(t, 50, 57, 2.2)],
+    [W.MARCH + 4.5, (t) => horn(t, 50, 57, 2.2)],
+    [W.CHARGE, (t) => { crash(t); braamWar(t, 38); roarCrowd(t, 3) }],
+    [W.CLASH, (t) => { crash(t); kick(t, 1.4); noiseSrc(t, 1).connect(filter('lowpass', 900)).connect(env(t, 0.7, 0.9, 0.01)) }],
+    [W.REINFORCE, (t) => { crash(t); braamWar(t, 40); growlWar(t) }],
+    [W.MEGA, (t) => megaBoom(t)],
+    ...[0, 0.25, 0.5, 0.8].map((d) => [W.HEAP + 0.2 + d, (t) => kick(t, 0.9)]), // everyone lands: thud thud thud
+    [W.HEAP + 1.5, (t) => trombone(t)],
+    [W.END - 2.5, (t) => [72, 76, 79, 84].forEach((n, i) => marimba(t + i * 0.13, n, 0.35))],
+    ...CANNON_SHOTS.flatMap((s) => [
+      [s.at, (t) => cannonBoom(t)],
+      [s.at + FLIGHT, (t) => explosion(t)],
+    ]),
+  ].sort((a, b) => a[0] - b[0])
+  let i = 0
+  let step = 0
+  warTimer = setInterval(() => {
+    const horizon = ctx.currentTime + 0.25
+    while (i < shots.length && t0 + shots[i][0] < horizon) {
+      shots[i][1](t0 + shots[i][0])
+      i++
+    }
+    while (step < total && t0 + step * STEP < horizon) {
+      warStep(step, t0 + step * STEP, W)
+      step++
+    }
+    if (step >= total && i >= shots.length) stopWarMusic()
+  }, 25)
+}
+
+const WAR_CHORDS = [
+  { root: 38, triad: [62, 65, 69] }, // Dm
+  { root: 34, triad: [58, 62, 65] }, // Bb
+  { root: 36, triad: [60, 64, 67] }, // C
+  { root: 33, triad: [57, 61, 64] }, // A
+]
+// heroic brass theme: [MIDI, length in 16ths], 4 bars
+const WAR_THEME = [
+  [62, 4], [65, 2], [69, 2], [74, 6], [72, 2],
+  [70, 4], [69, 4], [67, 8],
+  [69, 4], [72, 2], [74, 2], [77, 6], [76, 2],
+  [74, 4], [72, 4], [73, 8],
+]
+const THEME_AT = (() => {
+  let at = 0
+  return WAR_THEME.map(([n, len]) => {
+    const e = [at, n, len]
+    at += len
+    return e
+  })
+})()
+
+function warStep(i, t, W) {
+  const sec = i * 0.1
+  // game night: a bouncy marimba tune until SHOOT, then a ticking clock while the tiki "thinks"
+  if (sec < W.SHOOT) {
+    const tune = [72, 76, 79, 76, 74, 77, 81, 77, 72, 76, 79, 84, 79, 76, 74, 71]
+    if (i % 2 === 0) marimba(t, tune[(i / 2) % tune.length], 0.18)
+    return
+  }
+  if (sec < W.MARCH) {
+    if (sec < W.TIKI_LATE && i % 3 === 0) noiseSrc(t, 0.03).connect(filter('highpass', 4000)).connect(env(t, 0.25, 0.02)) // tick
+    return
+  }
+  // the march: taiko war drums building, a choir swelling in
+  if (sec < W.CHARGE) {
+    const s = i % 16
+    if (s === 0 || s === 8) taiko(t, 1)
+    if (s === 6 || s === 14) taiko(t, 0.6)
+    if (sec > W.MARCH + 4 && (s === 3 || s === 11)) taiko(t, 0.5)
+    if (s === 0 && Math.floor(i / 16) % 2 === 0 && sec > W.MARCH + 2) choir(t, [50, 57, 62, 65], 3.2, 0.7)
+    return
+  }
+  // silence before the mega-explosion, then slow-motion choir while everyone flies
+  if (sec >= W.MEGA - 0.35 && sec < W.MEGA) return
+  if (sec >= W.MEGA) {
+    if (sec < W.HEAP && i % 40 === 0) choir(t, [74, 77, 81], 4, 1)
+    return
+  }
+  // THE BATTLE
+  const k = i - Math.round(W.CHARGE / 0.1) // steps since the charge
+  const bar = Math.floor(k / 16)
+  const s = k % 16
+  const up = sec >= W.REINFORCE ? 2 : 0 // reinforcements: key change up a whole step
+  const ch = WAR_CHORDS[bar % 4]
+  // drums
+  if (s === 0 || s === 6 || s === 8 || s === 11 || (up && s % 2 === 0)) taiko(t, s === 0 ? 1.2 : 0.8)
+  if (s === 4 || s === 12) {
+    snare(t, 1)
+    clap(t)
+  }
+  hat(t, s % 4 === 2, 0.7)
+  if (s === 0 && bar % 4 === 0) crash(t)
+  if (bar % 2 === 1 && s >= 12) tom(t, 50 - (s - 12) * 3 + up)
+  // racing string ostinato
+  const pat = [0, 0, 2, 1]
+  stringNote(t, ch.triad[pat[s % 4]] - 12 + up, 0.08)
+  // bass
+  if (s % 2 === 0) bass(t, ch.root + 12 + up + (s % 4 === 2 ? 12 : 0), 0.18)
+  // choir chord per bar
+  if (s === 0) choir(t, ch.triad.map((n) => n - 12 + up), 1.6, up ? 1 : 0.8)
+  // the brass theme (from the clash on), louder after the reinforcements
+  if (sec >= W.CLASH) {
+    const pos = (k - Math.round((W.CLASH - W.CHARGE) / 0.1) + 6400) % 64
+    for (const [at, n, len] of THEME_AT) if (at === pos) brass(t, n + up, len * 0.1, up ? 1.2 : 1)
+  }
+}
+
+function blipAt(t, f) {
+  const o = ctx.createOscillator()
+  o.type = 'square'
+  o.frequency.value = f
+  o.connect(env(t, 0.15, 0.25))
+  o.start(t)
+  o.stop(t + 0.3)
+}
+function marimba(t, n, level) {
+  const o = ctx.createOscillator()
+  o.type = 'sine'
+  o.frequency.value = hz(n)
+  const o2 = ctx.createOscillator()
+  o2.type = 'sine'
+  o2.frequency.value = hz(n) * 4
+  const g2 = ctx.createGain()
+  g2.gain.value = 0.25
+  const g = env(t, level, 0.35, 0.002)
+  o.connect(g)
+  o2.connect(g2).connect(g)
+  for (const x of [o, o2]) {
+    x.start(t)
+    x.stop(t + 0.4)
+  }
+}
+function scratch(t) {
+  const f = filter('bandpass', 3000, 2)
+  f.frequency.setValueAtTime(3000, t)
+  f.frequency.exponentialRampToValueAtTime(150, t + 0.45)
+  noiseSrc(t, 0.5).connect(f).connect(env(t, 0.6, 0.45, 0.01))
+}
+function dunDunDun(t) {
+  ;[[50, 0, 0.35], [49, 0.45, 0.35], [43, 0.9, 1.6]].forEach(([n, d, len]) => brass(t + d, n, len, 1.4))
+}
+function brass(t, n, dur, level = 1) {
+  const f = filter('lowpass', 400, 2)
+  f.frequency.setValueAtTime(400, t)
+  f.frequency.linearRampToValueAtTime(2400, t + 0.08)
+  f.frequency.linearRampToValueAtTime(1300, t + dur)
+  f.connect(env(t, 0.11 * level, dur, 0.04))
+  for (const det of [-8, 0, 8]) {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.value = hz(n)
+    o.detune.value = det
+    o.connect(f)
+    o.start(t)
+    o.stop(t + dur + 0.1)
+  }
+}
+function horn(t, from, to, dur) {
+  const f = filter('lowpass', 1200, 2)
+  f.connect(env(t, 0.22, dur, 0.25))
+  for (const det of [-6, 6]) {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.detune.value = det
+    o.frequency.setValueAtTime(hz(from), t)
+    o.frequency.setValueAtTime(hz(from), t + dur * 0.4)
+    o.frequency.exponentialRampToValueAtTime(hz(to), t + dur * 0.55)
+    o.connect(f)
+    o.start(t)
+    o.stop(t + dur + 0.1)
+  }
+}
+function taiko(t, v) {
+  const o = ctx.createOscillator()
+  o.frequency.setValueAtTime(110, t)
+  o.frequency.exponentialRampToValueAtTime(48, t + 0.25)
+  o.connect(env(t, 0.75 * v, 0.45, 0.002))
+  o.start(t)
+  o.stop(t + 0.5)
+  noiseSrc(t, 0.08).connect(filter('lowpass', 1200)).connect(env(t, 0.25 * v, 0.06))
+}
+function choir(t, notes, dur, level) {
+  const f1 = filter('bandpass', 750, 4)
+  const f2 = filter('bandpass', 1150, 5)
+  const g = env(t, 0.07 * level, dur, Math.min(0.8, dur * 0.4))
+  f1.connect(g)
+  f2.connect(g)
+  for (const n of notes) {
+    for (const det of [-10, 10]) {
+      const o = ctx.createOscillator()
+      o.type = 'sawtooth'
+      o.frequency.value = hz(n)
+      o.detune.value = det
+      o.connect(f1)
+      o.connect(f2)
+      o.start(t)
+      o.stop(t + dur + 0.1)
+    }
+  }
+}
+function stringNote(t, n, dur) {
+  const o = ctx.createOscillator()
+  o.type = 'sawtooth'
+  o.frequency.value = hz(n)
+  o.connect(filter('lowpass', 2200, 1)).connect(env(t, 0.07, dur, 0.004))
+  o.start(t)
+  o.stop(t + dur + 0.05)
+}
+function braamWar(t, root) {
+  const f = filter('lowpass', 200, 3)
+  f.frequency.setValueAtTime(200, t)
+  f.frequency.exponentialRampToValueAtTime(1800, t + 0.5)
+  f.frequency.exponentialRampToValueAtTime(300, t + 3)
+  f.connect(env(t, 0.4, 3, 0.04))
+  for (const n of [root, root + 7, root + 12, root + 15, root + 19]) {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.value = hz(n)
+    o.connect(f)
+    o.start(t)
+    o.stop(t + 3.1)
+  }
+}
+function roarCrowd(t, dur) {
+  noiseSrc(t, dur).connect(filter('bandpass', 900, 0.6)).connect(env(t, 0.35, dur, 0.4))
+}
+function growlWar(t) {
+  const o = ctx.createOscillator()
+  o.type = 'sawtooth'
+  o.frequency.setValueAtTime(90, t)
+  o.frequency.linearRampToValueAtTime(140, t + 0.6)
+  o.frequency.linearRampToValueAtTime(70, t + 1.8)
+  o.connect(filter('lowpass', 700, 5)).connect(env(t, 0.6, 1.8, 0.1))
+  o.start(t)
+  o.stop(t + 2)
+}
+function cannonBoom(t) {
+  const o = ctx.createOscillator()
+  o.frequency.setValueAtTime(140, t)
+  o.frequency.exponentialRampToValueAtTime(35, t + 0.3)
+  o.connect(env(t, 0.5, 0.4, 0.002))
+  o.start(t)
+  o.stop(t + 0.45)
+  noiseSrc(t, 0.4).connect(filter('lowpass', 1500)).connect(env(t, 0.35, 0.3, 0.002))
+}
+function explosion(t) {
+  noiseSrc(t, 0.9).connect(filter('lowpass', 2500)).connect(env(t, 0.45, 0.8, 0.003))
+  const o = ctx.createOscillator()
+  o.frequency.setValueAtTime(80, t)
+  o.frequency.exponentialRampToValueAtTime(30, t + 0.4)
+  o.connect(env(t, 0.45, 0.45, 0.003))
+  o.start(t)
+  o.stop(t + 0.5)
+}
+function megaBoom(t) {
+  const o = ctx.createOscillator()
+  o.frequency.setValueAtTime(120, t)
+  o.frequency.exponentialRampToValueAtTime(20, t + 2.5)
+  o.connect(env(t, 1, 2.6, 0.005))
+  o.start(t)
+  o.stop(t + 2.8)
+  noiseSrc(t, 3).connect(filter('lowpass', 1200)).connect(env(t, 1, 2.8, 0.005))
+  noiseSrc(t, 1).connect(filter('highpass', 2500)).connect(env(t, 0.4, 0.8, 0.002))
+  crash(t)
+}
+function trombone(t) {
+  ;[[58, 0, 0.4], [57, 0.45, 0.4], [56, 0.9, 0.4], [55, 1.35, 1.4]].forEach(([n, d, len], k) => {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.setValueAtTime(hz(n), t + d)
+    if (k === 3) {
+      const vib = ctx.createOscillator()
+      const amt = ctx.createGain()
+      vib.frequency.value = 5
+      amt.gain.value = hz(n) * 0.025
+      vib.connect(amt).connect(o.frequency)
+      vib.start(t + d)
+      vib.stop(t + d + len)
+    }
+    o.connect(filter('lowpass', 900, 3)).connect(env(t + d, 0.2, len, 0.05))
+    o.start(t + d)
+    o.stop(t + d + len + 0.05)
+  })
+}
