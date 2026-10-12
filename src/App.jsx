@@ -10,6 +10,7 @@ import { chat, talkTo, useChat } from './chat.js'
 import { concert, useConcert } from './concert.js'
 import { SNEEZES, T as PRESS, usePress } from './donotpress.js'
 import { W as WAR_T, useWar } from './war.js'
+import { F as FIN, finale, useFinale } from './finale.js'
 import { EYE, SPAWN, collide, floorAt, locate } from './layout.js'
 import * as island from './island.js'
 import { useWorld } from './world.js'
@@ -17,7 +18,7 @@ import { useWorld } from './world.js'
 // each world's physics for the player: walls, floor heights, room names, and where you appear
 const ENVS = {
   evans: { collide, floorAt, locate, spawn: { x: SPAWN.x, z: SPAWN.z, yaw: 0 } },
-  island: { collide: island.collide, floorAt: island.floorAt, locate: island.locate, spawn: island.SPAWN },
+  island: { collide: island.collide, floorAt: island.floorAt, locate: island.locate, spawn: island.SPAWN, lift: () => island.finaleLive.lift },
 }
 
 export default function App() {
@@ -42,6 +43,41 @@ export default function App() {
   const show = useConcert()
   const pressed = usePress()
   const battle = useWar()
+  const fin = useFinale()
+  // THE FINALE shakes the screen: the awakening, the crowning, the drop, the chaos, liftoff, splashdown
+  useEffect(() => {
+    if (!fin.active) return
+    const body = document.body.classList
+    const at = (s, fn) => setTimeout(fn, s * 1000)
+    const quake = (s, len) => [at(s, () => body.add('quake')), at(s + len, () => body.remove('quake'))]
+    const timers = [
+      at(0.3, () => body.add('rumble')),
+      at(FIN.RISE + 5, () => body.remove('rumble')),
+      ...quake(FIN.AWAKEN, 1),
+      ...quake(FIN.CROWN, 0.8),
+      ...quake(FIN.DROP, 1.2),
+      at(FIN.CHAOS, () => body.add('rumble')),
+      ...quake(FIN.SNEEZE, 1.5),
+      ...quake(FIN.WAVE + 0.6, 1),
+      ...quake(FIN.LIFTOFF, 5.5),
+      at(FIN.SPACE, () => body.remove('rumble')),
+      ...quake(FIN.SPLASH, 1.2),
+    ]
+    return () => {
+      timers.forEach(clearTimeout)
+      body.remove('rumble', 'quake')
+    }
+  }, [fin.active, fin.plays])
+  // the secret button asks first: free the mouse so you can click an answer
+  useEffect(() => {
+    if (!fin.asking) return
+    touchRef.current.move = [0, 0]
+    if (document.pointerLockElement) document.exitPointerLock()
+  }, [fin.asking])
+  const answer = (yes) => {
+    finale.answer(yes)
+    if (!touchOn) lockRef.current?.() // the click counts as a gesture, so we can grab the mouse again
+  }
   // the war shakes the screen: the march, the clash, the giants arriving, the mega-explosion
   useEffect(() => {
     if (!battle.active) return
@@ -184,6 +220,91 @@ export default function App() {
           {battle.stage === 'heap' && <div className="event-title soft wrap">Nobody won. Everybody flew.</div>}
         </>
       )}
+      {here.name === 'island' && fin.active && (
+        <>
+          {fin.stage === 'awaken' && (
+            <>
+              <div className="flash" />
+              <div className="event-title soft wrap">…what have you done?</div>
+            </>
+          )}
+          {fin.stage === 'fire' && <div className="event-title red wrap">🔥 THE SKY IS FALLING 🔥</div>}
+          {fin.stage === 'rise' && <div className="event-title shiver wrap">SOMETHING IS RISING…</div>}
+          {fin.stage === 'king' && (
+            <>
+              <div className="flash gold" />
+              <div className="event-title wrap">👑 ALL HAIL KING RYAN JR. 👑</div>
+            </>
+          )}
+          {fin.stage === 'parade' && <div className="event-title soft wrap">🎺 the royal parade 🎺</div>}
+          {fin.stage === 'show' && <div className="event-title wrap">🎸 THE ULTIMATE CONCERT 🎸</div>}
+          {fin.stage === 'duel' && <div className="event-title red wrap">⚡ GUITAR DUEL: ROSE vs. SHARK ⚡</div>}
+          {fin.stage === 'build' && <div className="event-title soft wrap">DJ Zaman is cooking… 🎧</div>}
+          {fin.stage === 'drop' && (
+            <>
+              <div className="flash" />
+              <div className="event-title mega">DROP!</div>
+            </>
+          )}
+          {fin.stage === 'chaos' && <div className="event-title red wrap">🌀 TOTAL ISLAND CHAOS 🌀</div>}
+          {fin.stage === 'achoo' && (
+            <>
+              <div className="flash" />
+              <div className="event-title huge charge">ACHOOOOO!!!</div>
+            </>
+          )}
+          {fin.stage === 'wave' && <div className="event-title red wrap">🌊 TSUNAMI 🌊</div>}
+          {fin.stage === 'tospace' && <div className="event-title shiver wrap">…wait. TO SPACE?!</div>}
+          {fin.stage === 'three' && <div className="event-title mega">3</div>}
+          {fin.stage === 'two' && <div className="event-title mega">2</div>}
+          {fin.stage === 'one' && <div className="event-title mega">1</div>}
+          {fin.stage === 'liftoff' && (
+            <>
+              <div className="flash long" />
+              <div className="event-title huge charge wrap">🚀 LIFTOFF 🚀</div>
+            </>
+          )}
+          {fin.stage === 'space' && <div className="event-title soft wrap">🌌 Ryan Jr. Island… in SPACE 🌌</div>}
+          {fin.stage === 'chute' && <div className="event-title soft wrap">🪂 …uh oh. 🪂</div>}
+          {fin.stage === 'splash' && (
+            <>
+              <div className="flash long" />
+              <div className="event-title huge charge">SPLASH!!!</div>
+            </>
+          )}
+          {fin.stage === 'end' && <div className="event-title soft wrap">THE END…? 👑</div>}
+        </>
+      )}
+      {fin.asking > 0 && (
+        <div className="royal-ask">
+          <div key={fin.asking} className={fin.asking === 2 ? 'royal-card again' : 'royal-card'}>
+            <div className="royal-crown">👑</div>
+            {fin.asking === 1 ? (
+              <>
+                <h2>Are you sure?</h2>
+                <div className="royal-btns">
+                  <button className="go" onClick={() => answer(true)}>Yes</button>
+                  <button className="go alt" onClick={() => answer(false)}>No</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2>Are you truly ready for this?</h2>
+                <p>The most epic event of all time. There is no going back.</p>
+                <div className="royal-btns">
+                  <button className="go" onClick={() => answer(true)}>YES. I&apos;M READY.</button>
+                  <button className="go alt" onClick={() => answer(false)}>no… I&apos;m scared</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {fin.chicken > 0 && !fin.asking && (
+        <div key={fin.chicken} className="royal-toast">
+          {fin.chickenAt === 2 ? 'SO CLOSE. 🐔 (the button will wait for you)' : 'Smart choice. 🐾 …for now.'}
+        </div>
+      )}
       {here.name === 'island' && show.shark && (
         <>
           <div className="flash" />
@@ -191,7 +312,7 @@ export default function App() {
         </>
       )}
 
-      {!playing && !talkingTo && (
+      {!playing && !talkingTo && !fin.asking && (
         <div className="overlay" onClick={() => (isTouch ? setTouch(true) : lockRef.current?.())}>
           <div className="card">
             {here.name === 'island' ? (

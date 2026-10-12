@@ -65,22 +65,6 @@ export default function Zaman({ position, rotation = 0, front }) {
   const keychain = useRef()
   const bubble = useRef()
   const hit = useRef()
-  const chest = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        transparent: true,
-        roughness: 0.9,
-        map: textTex((g, w, h) => {
-          g.fillStyle = PINK
-          g.font = 'bold 92px system-ui, sans-serif'
-          g.textAlign = 'center'
-          g.fillText('BLACKPINK', w / 2, h / 2 + 10)
-          g.font = 'bold 44px system-ui, sans-serif'
-          g.fillText('♥ BLINK ♥', w / 2, h / 2 + 76)
-        }),
-      }),
-    [],
-  )
   const yo = useMemo(
     () =>
       new THREE.SpriteMaterial({
@@ -138,79 +122,7 @@ export default function Zaman({ position, rotation = 0, front }) {
         {/* invisible hitbox for click-to-chat */}
         <mesh ref={hit} geometry={CYL} position={[0, 0.95, 0]} scale={[0.45, 1.9, 0.45]} visible={false} />
 
-        {/* sneakers + joggers */}
-        {[-1, 1].map((sx) => (
-          <group key={sx}>
-            <B g={BOX} c="#f4f4f4" p={[0.1 * sx, 0.05, 0.04]} s={[0.12, 0.09, 0.28]} />
-            <B g={BOX} c={PINK} p={[0.1 * sx, 0.012, 0.04]} s={[0.125, 0.025, 0.285]} />
-            <B g={CYL} c={JOGGERS} p={[0.1 * sx, 0.5, 0]} s={[0.085, 0.82, 0.085]} />
-            <B g={CYL} c="#1c1f27" p={[0.1 * sx, 0.12, 0]} s={[0.07, 0.06, 0.07]} />
-          </group>
-        ))}
-        <B g={CYL} c={JOGGERS} p={[0, 0.88, 0]} s={[0.2, 0.12, 0.15]} />
-
-        {/* Labubu keychain clipped to his belt loop */}
-        <group position={[-0.2, 0.86, 0.06]}>
-          <B g={RING} c="#c9a44a" o={{ metalness: 0.8, roughness: 0.3 }} p={[0, 0, 0]} r={[0, Math.PI / 2, 0]} s={0.025} />
-          <group ref={keychain}>
-            <B g={CYL} c="#c9a44a" o={{ metalness: 0.8, roughness: 0.3 }} p={[0, -0.05, 0]} s={[0.004, 0.08, 0.004]} />
-            <group position={[0, -0.27, 0]}>
-              <Labubu fur="#ff8fc7" expression="grin" shirt="#141418" height={0.17} phase={2} />
-            </group>
-          </group>
-        </group>
-
-        {/* hoodie */}
-        <mesh geometry={TORSO} material={m(HOODIE)} position={[0, 1.16, 0]} />
-        <B c={HOODIE} p={[0, 1.46, 0]} s={[0.27, 0.1, 0.18]} />
-        <B c={HOODIE} p={[0, 1.47, -0.12]} s={[0.19, 0.12, 0.1]} />
-        <B g={RING} c={HOODIE} p={[0, 1.5, -0.01]} r={[Math.PI / 2 - 0.25, 0, 0]} s={[0.11, 0.1, 0.25]} />
-        <B g={BOX} c="#22222a" p={[0, 0.98, 0.215]} s={[0.26, 0.12, 0.02]} />
-        <B g={BOX} c={PINK} p={[0, 1.04, 0.226]} s={[0.26, 0.01, 0.005]} />
-        <B g={CYL} c={PINK} p={[0, 0.85, 0]} s={[0.236, 0.05, 0.2]} />
-        <mesh material={chest} position={[0, 1.24, 0.225]}>
-          <planeGeometry args={[0.3, 0.15]} />
-        </mesh>
-        {[-1, 1].map((sx) => (
-          <group key={sx}>
-            <B g={CYL} c={PINK} p={[0.045 * sx, 1.33, 0.205]} s={[0.006, 0.14, 0.006]} />
-            <B g={CYL} c="#ffffff" p={[0.045 * sx, 1.255, 0.205]} s={[0.009, 0.02, 0.009]} />
-          </group>
-        ))}
-
-        {/* arms: left relaxed, right gestures while he explains */}
-        <group ref={armL} position={[0.26, 1.45, 0]}>
-          <mesh geometry={CAP} material={m(HOODIE)} position={[0, -0.24, 0]} scale={[0.07, 0.2, 0.07]} />
-          <B g={CYL} c={PINK} p={[0, -0.46, 0]} s={[0.06, 0.03, 0.06]} />
-          <B c={SKIN} p={[0, -0.52, 0.01]} s={[0.045, 0.055, 0.04]} />
-        </group>
-        <group ref={armR} position={[-0.26, 1.45, 0]}>
-          <mesh geometry={CAP} material={m(HOODIE)} position={[0, -0.24, 0]} scale={[0.07, 0.2, 0.07]} />
-          <B g={CYL} c={PINK} p={[0, -0.46, 0]} s={[0.06, 0.03, 0.06]} />
-          <B c={SKIN} p={[0, -0.52, 0.01]} s={[0.045, 0.055, 0.04]} />
-        </group>
-
-        {/* head: buzz cut, nerd glasses, big grin */}
-        <B g={CYL} c={SKIN} p={[0, 1.55, 0]} s={[0.05, 0.08, 0.05]} />
-        <group ref={head} position={[0, 1.68, 0]}>
-          <B c={SKIN} p={[0, 0, 0]} s={[0.12, 0.14, 0.13]} />
-          <B g={CAPSPH} c="#2b1f18" o={{ roughness: 1 }} p={[0, 0.005, -0.004]} s={[0.123, 0.143, 0.133]} />
-          {[-1, 1].map((sx) => (
-            <group key={sx}>
-              <B c={SKIN} p={[0.122 * sx, 0, 0]} s={[0.02, 0.035, 0.02]} />
-              <B c="#ffffff" p={[0.045 * sx, 0.025, 0.112]} s={[0.022, 0.018, 0.012]} />
-              <B c="#1d1410" p={[0.045 * sx, 0.025, 0.122]} s={[0.011, 0.012, 0.008]} />
-              <B g={BOX} c="#1d1410" p={[0.047 * sx, 0.062, 0.117]} r={[0, 0, -0.12 * sx]} s={[0.045, 0.01, 0.01]} />
-              {/* thick black frames */}
-              <B g={RING} c="#0d0d0f" p={[0.047 * sx, 0.025, 0.13]} s={[0.033, 0.028, 0.03]} />
-              <B g={BOX} c="#0d0d0f" p={[0.11 * sx, 0.03, 0.06]} s={[0.006, 0.008, 0.13]} />
-            </group>
-          ))}
-          <B g={BOX} c="#0d0d0f" p={[0, 0.03, 0.136]} s={[0.03, 0.007, 0.006]} />
-          <B c={SKIN} p={[0, -0.005, 0.128]} s={[0.022, 0.03, 0.025]} />
-          <mesh ref={mouth} geometry={SPH} material={m('#5a1f22')} position={[0, -0.06, 0.117]} scale={[0.045, 0.012, 0.012]} />
-          <B g={BOX} c="#ffffff" p={[0, -0.052, 0.124]} s={[0.06, 0.008, 0.004]} />
-        </group>
+        <ZamanBody rig={{ head, mouth, armL, armR, keychain }} />
 
         <sprite ref={bubble} material={yo} position={[0.2, 2.12, 0]} scale={[0.5, 0.25, 1]} />
       </group>
@@ -222,5 +134,103 @@ export default function Zaman({ position, rotation = 0, front }) {
         </group>
       )}
     </>
+  )
+}
+
+// his body (classroom + the island finale share it). Faces +z.
+// `rig` holds refs ({ head, mouth, armL, armR, keychain }) so the owner can animate it.
+export function ZamanBody({ rig }) {
+  const chest = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        transparent: true,
+        roughness: 0.9,
+        map: textTex((g, w, h) => {
+          g.fillStyle = PINK
+          g.font = 'bold 92px system-ui, sans-serif'
+          g.textAlign = 'center'
+          g.fillText('BLACKPINK', w / 2, h / 2 + 10)
+          g.font = 'bold 44px system-ui, sans-serif'
+          g.fillText('♥ BLINK ♥', w / 2, h / 2 + 76)
+        }),
+      }),
+    [],
+  )
+  return (
+    <group>
+      {/* sneakers + joggers */}
+      {[-1, 1].map((sx) => (
+        <group key={sx}>
+          <B g={BOX} c="#f4f4f4" p={[0.1 * sx, 0.05, 0.04]} s={[0.12, 0.09, 0.28]} />
+          <B g={BOX} c={PINK} p={[0.1 * sx, 0.012, 0.04]} s={[0.125, 0.025, 0.285]} />
+          <B g={CYL} c={JOGGERS} p={[0.1 * sx, 0.5, 0]} s={[0.085, 0.82, 0.085]} />
+          <B g={CYL} c="#1c1f27" p={[0.1 * sx, 0.12, 0]} s={[0.07, 0.06, 0.07]} />
+        </group>
+      ))}
+      <B g={CYL} c={JOGGERS} p={[0, 0.88, 0]} s={[0.2, 0.12, 0.15]} />
+
+      {/* Labubu keychain clipped to his belt loop */}
+      <group position={[-0.2, 0.86, 0.06]}>
+        <B g={RING} c="#c9a44a" o={{ metalness: 0.8, roughness: 0.3 }} p={[0, 0, 0]} r={[0, Math.PI / 2, 0]} s={0.025} />
+        <group ref={rig.keychain}>
+          <B g={CYL} c="#c9a44a" o={{ metalness: 0.8, roughness: 0.3 }} p={[0, -0.05, 0]} s={[0.004, 0.08, 0.004]} />
+          <group position={[0, -0.27, 0]}>
+            <Labubu fur="#ff8fc7" expression="grin" shirt="#141418" height={0.17} phase={2} />
+          </group>
+        </group>
+      </group>
+
+      {/* hoodie */}
+      <mesh geometry={TORSO} material={m(HOODIE)} position={[0, 1.16, 0]} />
+      <B c={HOODIE} p={[0, 1.46, 0]} s={[0.27, 0.1, 0.18]} />
+      <B c={HOODIE} p={[0, 1.47, -0.12]} s={[0.19, 0.12, 0.1]} />
+      <B g={RING} c={HOODIE} p={[0, 1.5, -0.01]} r={[Math.PI / 2 - 0.25, 0, 0]} s={[0.11, 0.1, 0.25]} />
+      <B g={BOX} c="#22222a" p={[0, 0.98, 0.215]} s={[0.26, 0.12, 0.02]} />
+      <B g={BOX} c={PINK} p={[0, 1.04, 0.226]} s={[0.26, 0.01, 0.005]} />
+      <B g={CYL} c={PINK} p={[0, 0.85, 0]} s={[0.236, 0.05, 0.2]} />
+      <mesh material={chest} position={[0, 1.24, 0.225]}>
+        <planeGeometry args={[0.3, 0.15]} />
+      </mesh>
+      {[-1, 1].map((sx) => (
+        <group key={sx}>
+          <B g={CYL} c={PINK} p={[0.045 * sx, 1.33, 0.205]} s={[0.006, 0.14, 0.006]} />
+          <B g={CYL} c="#ffffff" p={[0.045 * sx, 1.255, 0.205]} s={[0.009, 0.02, 0.009]} />
+        </group>
+      ))}
+
+      {/* arms: left relaxed, right gestures while he explains */}
+      <group ref={rig.armL} position={[0.26, 1.45, 0]}>
+        <mesh geometry={CAP} material={m(HOODIE)} position={[0, -0.24, 0]} scale={[0.07, 0.2, 0.07]} />
+        <B g={CYL} c={PINK} p={[0, -0.46, 0]} s={[0.06, 0.03, 0.06]} />
+        <B c={SKIN} p={[0, -0.52, 0.01]} s={[0.045, 0.055, 0.04]} />
+      </group>
+      <group ref={rig.armR} position={[-0.26, 1.45, 0]}>
+        <mesh geometry={CAP} material={m(HOODIE)} position={[0, -0.24, 0]} scale={[0.07, 0.2, 0.07]} />
+        <B g={CYL} c={PINK} p={[0, -0.46, 0]} s={[0.06, 0.03, 0.06]} />
+        <B c={SKIN} p={[0, -0.52, 0.01]} s={[0.045, 0.055, 0.04]} />
+      </group>
+
+      {/* head: buzz cut, nerd glasses, big grin */}
+      <B g={CYL} c={SKIN} p={[0, 1.55, 0]} s={[0.05, 0.08, 0.05]} />
+      <group ref={rig.head} position={[0, 1.68, 0]}>
+        <B c={SKIN} p={[0, 0, 0]} s={[0.12, 0.14, 0.13]} />
+        <B g={CAPSPH} c="#2b1f18" o={{ roughness: 1 }} p={[0, 0.005, -0.004]} s={[0.123, 0.143, 0.133]} />
+        {[-1, 1].map((sx) => (
+          <group key={sx}>
+            <B c={SKIN} p={[0.122 * sx, 0, 0]} s={[0.02, 0.035, 0.02]} />
+            <B c="#ffffff" p={[0.045 * sx, 0.025, 0.112]} s={[0.022, 0.018, 0.012]} />
+            <B c="#1d1410" p={[0.045 * sx, 0.025, 0.122]} s={[0.011, 0.012, 0.008]} />
+            <B g={BOX} c="#1d1410" p={[0.047 * sx, 0.062, 0.117]} r={[0, 0, -0.12 * sx]} s={[0.045, 0.01, 0.01]} />
+            {/* thick black frames */}
+            <B g={RING} c="#0d0d0f" p={[0.047 * sx, 0.025, 0.13]} s={[0.033, 0.028, 0.03]} />
+            <B g={BOX} c="#0d0d0f" p={[0.11 * sx, 0.03, 0.06]} s={[0.006, 0.008, 0.13]} />
+          </group>
+        ))}
+        <B g={BOX} c="#0d0d0f" p={[0, 0.03, 0.136]} s={[0.03, 0.007, 0.006]} />
+        <B c={SKIN} p={[0, -0.005, 0.128]} s={[0.022, 0.03, 0.025]} />
+        <mesh ref={rig.mouth} geometry={SPH} material={m('#5a1f22')} position={[0, -0.06, 0.117]} scale={[0.045, 0.012, 0.012]} />
+        <B g={BOX} c="#ffffff" p={[0, -0.052, 0.124]} s={[0.06, 0.008, 0.004]} />
+      </group>
+    </group>
   )
 }

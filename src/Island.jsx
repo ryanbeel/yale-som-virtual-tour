@@ -11,11 +11,14 @@ import { concert, useConcert } from './concert.js'
 import Volcano from './Volcano.jsx'
 import DoNotPress, { stormDark } from './DoNotPress.jsx'
 import War from './War.jsx'
+import Finale from './Finale.jsx'
+import { FinaleSky } from './FinaleFx.jsx'
+import { finale, finaleSky } from './finale.js'
 import { press } from './donotpress.js'
 import { Torch, Totem } from './TikiParty.jsx'
 import {
   BAR, BEACH_SPOTS, CRATER, HAMMOCK, HUTS, MACHINE, PALMS, PLAZA, RETURN_PORTAL, SHORE, SIGN, STAGE, TORCHES,
-  heightAt, inland, sandy,
+  finaleLive, heightAt, inland, sandy,
 } from './island.js'
 
 // Ryan Jr. Island: a turquoise lagoon, white beaches, palms, a Diamond-Head-style crater, a tiki
@@ -94,6 +97,7 @@ function Atmosphere() {
   const sunBall = useRef()
   const moon = useRef()
   const stars = useRef()
+  const sky3 = useRef() // sun, moon and stars ride along when the island flies to space
   const last = useRef(-1)
   const cloudMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff', fog: false }), [])
   const starMat = useMemo(() => new THREE.PointsMaterial({ color: '#ffffff', size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0, fog: false }), [])
@@ -130,10 +134,45 @@ function Atmosphere() {
     }
   }, [scene, sky])
   useFrame(() => {
+    sky3.current.position.y = finaleLive.lift
+    const fe = finale.t()
+    if (fe >= 0) {
+      // THE FINALE paints its own sky: blood red, royal sunset, night, storm, space, sunset
+      const P = finaleSky(fe, THREE)
+      last.current = -1
+      const g = sky.c.getContext('2d')
+      const grad = g.createLinearGradient(0, 0, 0, 256)
+      grad.addColorStop(0, P.top)
+      grad.addColorStop(0.55, P.mid)
+      grad.addColorStop(1, P.low)
+      g.fillStyle = grad
+      g.fillRect(0, 0, 4, 256)
+      sky.t.needsUpdate = true
+      scene.fog.color.set(P.fog)
+      scene.fog.far = P.far
+      scene.environmentIntensity = 0.1 + 0.25 * Math.min(1, P.hemi)
+      hemi.current.intensity = P.hemi
+      sun.current.intensity = P.sun
+      sun.current.color.set(P.sunCol)
+      amb.current.intensity = P.amb
+      cloudMat.color.set(P.cloud)
+      sunBall.current.visible = P.sunBall > 0.5
+      sunBall.current.material.color.set(P.sunCol)
+      moon.current.visible = P.moon > 0.5
+      starMat.opacity = P.stars
+      stars.current.visible = P.stars > 0.05
+      return
+    }
+    if (last.fin) {
+      // the finale just ended: put the sun back
+      last.fin = false
+      sunBall.current.material.color.set('#fff7c2')
+    }
+    last.fin = fe >= 0
     const starry = concert.timeline().night // the concert's clear night has a moon and stars
     const storm = stormDark(press.t()) // the giant's thunderstorm doesn't
     const night = Math.max(starry, storm)
-    if (Math.abs(night - last.current) < 0.002 && Math.abs(storm - last.storm) < 0.002) return
+    if (Math.abs(night - last.current) < 0.002 && Math.abs(storm - last.storm) < 0.002 && last.current >= 0) return
     last.storm = storm
     last.current = night
     const g = sky.c.getContext('2d')
@@ -163,15 +202,17 @@ function Atmosphere() {
       <directionalLight ref={sun} position={[40, 70, 30]} intensity={DAY.sun} color="#fff3dc" />
       <ambientLight ref={amb} intensity={DAY.amb} />
       {/* a big friendly sun by day, a moon by night, plus stars and a few puffy clouds */}
-      <mesh ref={sunBall} position={[120, 110, -260]}>
-        <sphereGeometry args={[14, 24, 16]} />
-        <meshBasicMaterial color="#fff7c2" fog={false} />
-      </mesh>
-      <mesh ref={moon} position={[-140, 120, -240]} visible={false}>
-        <sphereGeometry args={[11, 24, 16]} />
-        <meshBasicMaterial color="#f4f1dc" fog={false} />
-      </mesh>
-      <points ref={stars} geometry={starGeo} material={starMat} visible={false} />
+      <group ref={sky3}>
+        <mesh ref={sunBall} position={[120, 110, -260]}>
+          <sphereGeometry args={[14, 24, 16]} />
+          <meshBasicMaterial color="#fff7c2" fog={false} />
+        </mesh>
+        <mesh ref={moon} position={[-140, 120, -240]} visible={false}>
+          <sphereGeometry args={[11, 24, 16]} />
+          <meshBasicMaterial color="#f4f1dc" fog={false} />
+        </mesh>
+        <points ref={stars} geometry={starGeo} material={starMat} visible={false} />
+      </group>
       {[[-90, 70, -220], [40, 85, -280], [180, 60, -120], [-200, 65, 40], [60, 75, 240]].map(([x, y, z], i) => (
         <group key={i} position={[x, y, z]}>
           {[[0, 0, 0, 14], [12, -2, 3, 10], [-12, -3, -2, 11], [4, 6, 0, 9]].map(([dx, dy, dz, r], k) => (
@@ -259,9 +300,17 @@ function Water() {
   }, [])
   const foamMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.6, depthWrite: false }), [])
   const waterMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#18bccb', transparent: true, opacity: 0.72, roughness: 0.12, metalness: 0.15, depthWrite: false }), [])
+  const floor = useRef()
   useFrame(({ clock }) => {
     const t = clock.elapsedTime
-    waterMat.color.copy(lerpColor('#18bccb', '#0c3d66', Math.max(concert.timeline().night, stormDark(press.t()))))
+    const fe = finale.t()
+    if (fe >= 0) waterMat.color.set(finaleSky(fe, THREE).water)
+    else waterMat.color.copy(lerpColor('#18bccb', '#0c3d66', Math.max(concert.timeline().night, stormDark(press.t()))))
+    // once the island has flown off, Earth (FinaleSky) takes over from the flat sea
+    const sea = finaleLive.lift < 30
+    water.current.visible = sea
+    foam.current.visible = sea && finaleLive.lift < 0.3
+    floor.current.visible = sea
     water.current.position.y = Math.sin(t * 0.8) * 0.04
     foam.current.position.y = 0.05 + Math.sin(t * 0.8) * 0.04
     foam.current.scale.setScalar(1 + Math.sin(t * 0.8) * 0.006)
@@ -274,7 +323,7 @@ function Water() {
       </mesh>
       <mesh ref={foam} geometry={foamGeo} material={foamMat} />
       {/* deep ocean floor past the edge of the island mesh */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.6, 0]}>
+      <mesh ref={floor} rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.6, 0]}>
         <ringGeometry args={[130, 600, 96]} />
         <meshStandardMaterial color="#0f5a73" roughness={1} />
       </mesh>
@@ -630,37 +679,47 @@ function Flamingo() {
 
 export default function Island() {
   const portalY = heightAt(RETURN_PORTAL.x, RETURN_PORTAL.z)
+  const lift = useRef()
+  // THE FINALE launches the whole island (and you) into space: everything but the sky and the sea
+  // rides in this group
+  useFrame(() => {
+    lift.current.position.y = finaleLive.lift
+  })
   return (
     <>
       <Atmosphere />
-      <Terrain />
       <Water />
-      <Scenery />
-      <BigSign />
-      <CloneMachine position={[MACHINE.x, 0, MACHINE.z]} />
-      <IslandCats />
-      <Stage />
-      <TikiBar />
-      <Hammock />
-      <Flamingo />
-      <Shark />
-      <Concert />
-      <Volcano />
-      <DoNotPress />
-      <War />
-      {TORCHES.map(([x, z], i) => (
-        <Torch key={i} position={[x, heightAt(x, z), z]} />
-      ))}
-      <PartyLights />
-      <Portal
-        position={[RETURN_PORTAL.x, portalY, RETURN_PORTAL.z]}
-        rotation={Math.PI}
-        radius={1.8}
-        to="evans"
-        spawn={{ x: 0, z: -35.2, yaw: Math.PI }}
-        label="BACK TO EVANS HALL"
-        colors={['#ff4fa3', '#2ec4a6']}
-      />
+      <FinaleSky />
+      <group ref={lift}>
+        <Terrain />
+        <Scenery />
+        <BigSign />
+        <CloneMachine position={[MACHINE.x, 0, MACHINE.z]} />
+        <IslandCats />
+        <Stage />
+        <TikiBar />
+        <Hammock />
+        <Flamingo />
+        <Shark />
+        <Concert />
+        <Volcano />
+        <DoNotPress />
+        <War />
+        {TORCHES.map(([x, z], i) => (
+          <Torch key={i} position={[x, heightAt(x, z), z]} />
+        ))}
+        <PartyLights />
+        <Portal
+          position={[RETURN_PORTAL.x, portalY, RETURN_PORTAL.z]}
+          rotation={Math.PI}
+          radius={1.8}
+          to="evans"
+          spawn={{ x: 0, z: -35.2, yaw: Math.PI }}
+          label="BACK TO EVANS HALL"
+          colors={['#ff4fa3', '#2ec4a6']}
+        />
+        <Finale />
+      </group>
     </>
   )
 }

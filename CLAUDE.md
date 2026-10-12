@@ -2,8 +2,8 @@
 
 A first-person 3D walk-through of Evans Hall floor 2 (Yale SOM), forked from the class repo
 `zlisto/yale_som_virtual` and turned into a family playground: AI professors you can chat with,
-family characters, and a portal to "Ryan Jr. Island" with three big events (a concert, a giant-cat
-sneeze disaster, and the Tiki–Dino War).
+family characters, and a portal to "Ryan Jr. Island" with four big events (a concert, a giant-cat
+sneeze disaster, the Tiki–Dino War, and THE FINALE: the most epic one, with everyone in it).
 React + Vite + three.js (@react-three/fiber) frontend; Python FastAPI + Pydantic AI backend.
 
 - Repo: https://github.com/ryanbeel/yale-som-virtual-tour (public); `upstream` = the professor's repo
@@ -23,6 +23,8 @@ cd backend && .venv/bin/uvicorn main:app --reload --reload-exclude '.venv/*' --p
 - The app's preview launcher can't read `~/Documents` (macOS privacy), so start `npm run dev` from a
   shell and point the browser pane at http://localhost:5173 (`../.claude/launch.json` is set up that way).
 - GitHub CLI is at `~/.local/bin/gh` (logged in as ryanbeel, with `workflow` scope).
+  `gh` defaults to the upstream (professor's) repo here, so pass `-R ryanbeel/yale-som-virtual-tour`
+  (e.g. `gh run list -R ryanbeel/yale-som-virtual-tour -L 1`).
 - On GitHub Pages there's no backend: chat windows say "offline"; everything else works.
 
 ## Ground rules
@@ -48,7 +50,8 @@ cd backend && .venv/bin/uvicorn main:app --reload --reload-exclude '.venv/*' --p
 - `layout.js` + `World.jsx`: Evans Hall floor plan and meshes. The portal is at the back of room 2220.
 - `island.js` + `Island.jsx`: Ryan Jr. Island terrain/layout (+ sky that goes night/storm), with
   `Portal.jsx` back to Evans.
-- `Minimap.jsx`: Evans map and island map (cats, shark, "???" button and green GAME button markers).
+- `Minimap.jsx`: Evans map and island map (cats, shark, "???" button, green GAME button, gold secret
+  button in the crater).
 
 **Chat-enabled characters** (click, or tap Talk on phones). Built on `talkable.js` + `chat.js` (`talkTo`).
 - Rooms are assigned in `Faculty.jsx` (`ROOM_PROFESSOR` / `AVATARS`):
@@ -87,6 +90,31 @@ cd backend && .venv/bin/uvicorn main:app --reload --reload-exclude '.venv/*' --p
   - The epic score is `warMusic` in `music.js` (marimba game tune, taiko march, brass/choir battle theme
     that modulates up at the reinforcements, cannon booms timed to the shots).
   - Runs at ~60 fps at the peak (desktop).
+- THE FINALE (~95 s): a secret gold/purple button in the middle of the crater (`FINALE_BUTTON`). It asks
+  "Are you sure?" then "Are you truly ready for this?" (DOM dialogs in App). YES beams you onto the
+  floating **Royal Box** (`ROYAL_BOX`, glass floor, railing keeps you on) to watch:
+  - 0-11 s the awakening: rumble, blood-red sky, lightning, fireballs + embers raining
+  - 11-31 s King Ryan Jr. (RyanJr x24, crown, cape) rises out of the crater on a golden throne; the
+    royal parade: Golden Ryan Jr. float, Allison and Rose on horses, Zaman surfing a giant Labubu,
+    Schott with a Galton board raining balls, the shark surfing a lava wave, 70 dinos (party hats),
+    70 tikis, 40 cat knights, the war's giants
+  - 31-57 s the ultimate concert: a stage rises (`ROYAL_STAGE`), the king floats behind it; Allison
+    drums, Rose vs. the shark guitar duel, DJ Zaman counts down the drop, Schott conducts; lasers,
+    volcano, fireworks, the crowd does the wave
+  - 57-68 s chaos: giant Ryan Jr. rises in the north sea and sneezes, tsunami, cannons, the
+    Clone-O-Matic overloads (60 clones fly out), the sharknado; the king: "TO SPACE!!!"; 3-2-1
+  - 68-88 s liftoff: the whole island (everything inside Island's `lift` group) rockets to space
+    (`finaleLive.lift`, Earth + a ringed planet + a giant Ryan Jr. in a space helmet, zero gravity),
+    then a giant parachute brings it down; splash
+  - 90-95 s a tiny new button: "DO NOT PRESS THIS ONE EITHER." (stays after; it says "Not today. 😼")
+  - Files: `finale.js` (timeline `F`, palettes, lift/stage/tornado/wave helpers, the store), `Finale.jsx`
+    (buttons, Royal Box, king, stage, the cast), `FinaleFx.jsx` (crowd, meteors, lightning, fireworks,
+    giant, tsunami, sharknado, cannons, rocket bits, parachute, Earth). Score: `finaleMusic` in
+    `music.js`. Banners + shake: App. Other events refuse to start while it runs (`finaleLive.busy`).
+  - Shared bodies: `ZamanBody`, `SchottBody`, `SharkBody`, `AllisonBody`, `RoseBody` (rig refs).
+  - The player rides the lift via `env.lift()` in Player; `world.beam(spawn)` teleports within a world.
+  - First frame of the finale "warms up" all shaders/textures (Warmup in Finale.jsx) so it doesn't
+    stutter later. Runs ~60 fps on desktop.
 - `DinoCrowd.jsx` (classroom dino students), `TikiParty.jsx` (courtyard tiki party, shared parts/props).
 
 **Backend**
@@ -100,13 +128,14 @@ cd backend && .venv/bin/uvicorn main:app --reload --reload-exclude '.venv/*' --p
 - Dev-only teleport: `document.body.dataset.go = JSON.stringify([x, z, yawDeg, pitch, y?])`.
   `document.body.dataset.pos` / `.shark` expose positions.
 - Get to the island: walk into the 2220 portal (teleport to `[0, -37, 0, 0]`), or `world.go('island')`.
-- Fast-forward an event: set `concert.get().start`, `press.get().start` or `war.get().start` to
-  `performance.now()/1000 - seconds`.
+- Fast-forward an event: set `concert.get().start`, `press.get().start`, `war.get().start` or
+  `finale.get().start` to `performance.now()/1000 - seconds` (start the finale with `finale.start()`).
 - Screenshots lag by several seconds, so to inspect a moment, *pin* the clock: a requestAnimationFrame loop
   that keeps setting `start = performance.now()/1000 - T` (then take the screenshot).
 - Import the app's own module instance (Vite adds `?t=` after hot reloads):
   `await import(performance.getEntriesByType('resource').map(e => e.name).filter(n => n.includes('/src/concert.js')).pop())`
 - Hot reloads remount the island and reset any running show/event. Re-trigger after edits.
+- When the browser pane is hidden, the page is throttled: measure fps only while it's visible.
 
 ## Ideas parked for later
 

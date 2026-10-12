@@ -215,7 +215,7 @@ export const warriorPos = new Float32Array(N_ALL * 3)
 export const warriorOn = new Uint8Array(N_ALL)
 
 // part: [shape, position, rotation, scale, color key, option] (option: weapon/shield/helmet slot)
-const DINO_PARTS = [
+export const DINO_PARTS = [
   ['sphere', [0, 0.45, 0], 0, [0.3, 0.32, 0.36], 'skin'],
   ['sphere', [0, 0.42, 0.13], 0, [0.22, 0.25, 0.25], 'belly'],
   ['sphere', [0, 0.88, 0.18], 0, [0.22, 0.2, 0.24], 'skin'],
@@ -232,7 +232,7 @@ const DINO_PARTS = [
   ['cone', [0, 0.7, -0.24], [-0.7, 0, 0], [0.06, 0.13, 0.06], 'accent'],
   ['cone', [0, 1.1, 0.16], 0, [0.2, 0.24, 0.2], 'silver', 'helmet'],
 ]
-const TIKI_PARTS = [
+export const TIKI_PARTS = [
   ['cyl', [0, 0.62, 0], 0, [0.34, 1.0, 0.32], 'wood'],
   ['sphere', [0, 1.12, 0], 0, [0.34, 0.16, 0.32], 'wood'],
   ['sphere', [-0.13, 0.84, 0.29], 0, [0.1, 0.11, 0.06], 'white'],
@@ -250,7 +250,7 @@ const TIKI_PARTS = [
   ['sphere', [-0.14, 0.06, 0.08], 0, [0.11, 0.07, 0.15], 'dark'],
   ['sphere', [0.14, 0.06, 0.08], 0, [0.11, 0.07, 0.15], 'dark'],
 ]
-const CAT_PARTS = [
+export const CAT_PARTS = [
   ['sphere', [0, 0.24, -0.02], 0, [0.12, 0.11, 0.2], 'cat'],
   ['sphere', [0, 0.21, 0.08], 0, [0.085, 0.09, 0.1], 'white'],
   ['sphere', [0, 0.42, 0.15], 0, [0.1, 0.09, 0.09], 'cat'],

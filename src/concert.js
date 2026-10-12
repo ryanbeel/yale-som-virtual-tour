@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { finaleLive } from './island.js'
 import * as music from './music.js'
 
 // The island concert: Golden Ryan Jr. starts a 20-second countdown, then the band plays a 90-second
@@ -35,7 +36,7 @@ export const concert = {
   },
   // called from a click/tap, so the browser lets us start audio
   start() {
-    if (state.phase !== 'idle') return
+    if (state.phase !== 'idle' || finaleLive.busy) return
     music.prime()
     emit({ phase: 'countdown', start: now(), erupted: false, shark: false })
   },

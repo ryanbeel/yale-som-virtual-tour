@@ -12,7 +12,8 @@ const LOOK_SPEED = 0.005 // radians per touch pixel
 
 // PC controls work like a shooter: WASD move, mouse look, Shift sprint, Space jump, C crouch.
 // Touch controls come in through touchRef: { active, move: [x, y], look: [dx, dy], jump }.
-// `env` is the current world's physics: { collide, floorAt, locate, spawn: { x, z, yaw } }.
+// `env` is the current world's physics: { collide, floorAt, locate, spawn: { x, z, yaw }, lift? }.
+// `lift()` (island only) is how high the whole world has flown (the finale's trip to space).
 export default function Player({ lockRef, mapRef, touchRef, onLock, onWhere, env }) {
   const { camera, gl } = useThree()
   const { collide, floorAt, locate } = env
@@ -141,7 +142,7 @@ export default function Player({ lockRef, mapRef, touchRef, onLock, onWhere, env
     eye.current += (eyeTarget - eye.current) * Math.min(1, dt * 12)
     const fy = floorAt(camera.position.x, camera.position.z)
     floorY.current += (fy - floorY.current) * Math.min(1, dt * 14) // smooth step up/down
-    camera.position.y = devY.current ?? floorY.current + eye.current + jumpY.current
+    camera.position.y = (devY.current ?? floorY.current + eye.current + jumpY.current) + (env.lift?.() ?? 0)
 
     if (import.meta.env.DEV) document.body.dataset.pos = `${camera.position.x.toFixed(2)},${camera.position.z.toFixed(2)},${fwd.x.toFixed(2)},${fwd.z.toFixed(2)}|${touch.move.map((v) => v.toFixed(2))}`
     mapRef.current?.(camera.position.x, camera.position.z, fwd.x, fwd.z)

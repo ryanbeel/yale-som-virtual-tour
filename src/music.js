@@ -981,3 +981,365 @@ function trombone(t) {
     o.stop(t + d + len + 0.05)
   })
 }
+
+// ---------- THE FINALE (~95 s): one score in four acts, scheduled on the fly from a list of timed
+// events. Act 1 the awakening (drone, heartbeat, thunder, braams), act 2 the king (timpani roll, royal
+// fanfare, a regal march), act 3 the ultimate concert (128 BPM rock: band, a guitar duel between Rose
+// and the shark, DJ build-up and a huge drop), act 4 chaos (battle drums), countdown, rocket launch,
+// floaty space music, a slide whistle down under the parachute, the splash and a music-box ending.
+let finaleTimer = null
+export function stopFinaleMusic() {
+  if (finaleTimer) clearInterval(finaleTimer)
+  finaleTimer = null
+}
+
+// the secret button's "are you sure?" stingers
+export function askSfx(level) {
+  prime()
+  if (!ctx) return
+  const t = ctx.currentTime + 0.02
+  if (level === 1) {
+    brass(t, 38, 1.4, 1.4)
+    taiko(t, 1)
+  } else {
+    brass(t, 37, 0.5, 1.5)
+    brass(t + 0.55, 36, 2.2, 1.6)
+    taiko(t, 1.2)
+    taiko(t + 0.55, 1.4)
+    heartbeat(t + 1, t + 6, 0.9, 0.9)
+  }
+}
+
+export function finaleMusic(F, { lightning, shots, flight }) {
+  prime()
+  if (!ctx) return
+  stopFinaleMusic()
+  const t0 = ctx.currentTime + 0.05
+  const ev = []
+  const at = (s, fn) => ev.push([s, fn])
+
+  // ===== ACT 1: THE AWAKENING (0-11)
+  at(0, (t) => {
+    megaBoom(t)
+    braamWar(t, 26)
+    drone(t + 0.4, 10.8, [26, 33, 38], 1.3)
+    rumbleSfx(t, 11, 0.5)
+    heartbeat(t + 1, t + 11, 0.95, 0.32)
+  })
+  at(3, (t) => strings(t, 8, 12))
+  at(5.5, (t) => braamWar(t, 29))
+  at(8, (t) => braamWar(t, 31))
+  at(9.5, (t) => {
+    riser(t, 1.5)
+    choir(t, [62, 66, 69, 74], 3.5, 1.4) // a golden beam: the choir turns major
+  })
+  for (const s of lightning) at(s, (t) => thunder(t))
+  // ===== ACT 2: THE KING (11-31)
+  at(11, (t) => {
+    choir(t, [50, 57, 62, 66], 5.2, 1.2)
+    pad(t, 5, [50, 57, 62, 66, 69])
+    for (let k = 0; k < 40; k++) {
+      const d = 5 * (1 - (1 - k / 40) ** 1.6) // a timpani roll that speeds up
+      taiko(t + d, 0.35 + (k / 40) * 0.8)
+    }
+  })
+  // the royal fanfare: da-da-da DAAA, da-da-DAAAAA
+  at(F.CROWN, (t) => {
+    crash(t)
+    taiko(t, 1.4)
+    ;[[0, 62, 0.15], [0.17, 62, 0.15], [0.34, 62, 0.15], [0.5, 69, 0.95], [1.5, 66, 0.15], [1.67, 69, 0.15], [1.84, 74, 1.6]].forEach(([d, n, len]) => {
+      brass(t + d, n, len, 1.6)
+      brass(t + d, n + 12, len, 0.7)
+    })
+    choir(t + 1.84, [62, 66, 69, 74], 2, 1.3)
+    taiko(t + 1.84, 1.4)
+    crash(t + 1.84)
+  })
+  // the royal march: 120 BPM in D major, 6.5 bars (18-31)
+  const MB = 0.5 // one beat
+  const MARCH_CHORDS = [[50, [62, 66, 69]], [43, [59, 62, 67]], [45, [61, 64, 69]], [50, [62, 66, 69]], [47, [59, 62, 66]], [43, [59, 62, 67]], [45, [61, 64, 69]]]
+  const MARCH_TUNE = [
+    [[62, 1], [66, 0.5], [69, 0.5], [74, 1.5], [73, 0.5]],
+    [[71, 1], [74, 1], [71, 1], [67, 1]],
+    [[69, 1], [73, 0.5], [76, 0.5], [76, 1], [73, 1]],
+    [[74, 3], [69, 1]],
+    [[71, 1], [74, 0.5], [78, 0.5], [78, 1.5], [76, 0.5]],
+    [[74, 1], [71, 1], [67, 1], [71, 1]],
+    [[69, 2]],
+  ]
+  MARCH_CHORDS.forEach(([root, triad], bar) => {
+    const b0 = F.PARADE + bar * 4 * MB
+    const beats = bar === 6 ? 2 : 4
+    for (let k = 0; k < beats; k++) {
+      const s = b0 + k * MB
+      at(s, (t) => {
+        if (k % 2 === 0) kick(t, 0.9)
+        else snare(t, 0.7)
+        hat(t, false, 0.5)
+        bass(t, root - 12 + (k % 2 ? 7 : 0), 0.4)
+        marimba(t + MB / 2, triad[(k + 1) % 3] + 12, 0.08)
+      })
+      if (k === 3) for (let r = 0; r < 3; r++) at(s + MB / 2 + (r * MB) / 6, (t) => snare(t, 0.45)) // rat-a-tat
+    }
+    at(b0, (t) => choir(t, triad.map((n) => n - 12), beats * MB, 0.7))
+    let d = 0
+    for (const [n, len] of MARCH_TUNE[bar]) {
+      const dd = d
+      at(b0 + dd * MB, (t) => {
+        brass(t, n, len * MB * 0.95, 1.1)
+        marimba(t, n + 12, 0.12)
+      })
+      d += len
+    }
+  })
+  at(29.6, (t) => riser(t, 1.4))
+  for (let k = 0; k < 12; k++) at(30 + k / 12, (t) => snare(t, 0.4 + k * 0.06))
+
+  // ===== ACT 3: THE ULTIMATE CONCERT (31-57.25): 14 bars at 128 BPM in D major (D A Bm G)
+  const B = 60 / 128
+  const S = B / 4
+  const ROCK = [[50, [62, 66, 69]], [45, [61, 64, 69]], [47, [62, 66, 71]], [43, [62, 67, 71]]]
+  const HOOK2 = [
+    [74, 74, 76, 78, 76, 74, 71, 69],
+    [73, 73, 74, 76, 73, null, 69, null],
+    [74, 74, 76, 78, 81, 78, 76, 74],
+    [71, null, 71, 74, 73, 71, 69, null],
+  ]
+  const ROSE_LICKS = {
+    4: [74, 76, 78, 81, 78, 76, 74, 71, 74, 76, 78, 81, 83, 81, 78, 76],
+    6: [81, 83, 86, 83, 81, 78, 81, 83, 86, 88, 90, 88, 86, 83, 86, 90],
+  }
+  const SHARK_LICKS = {
+    5: [[0, 86, 6, 84, true], [6, 83, 1], [7, 81, 1], [8, 78, 1], [9, 81, 1], [10, 83, 1], [11, 86, 1], [12, 88, 4, 86, true]],
+    7: [93, 90, 88, 86, 90, 88, 86, 83, 88, 86, 83, 81, 86, 83, 81, 78].map((n, i) => [i, n, 1]),
+  }
+  for (let bar = 0; bar < 14; bar++) {
+    const b0 = F.SHOW + bar * 16 * S
+    const [root, triad] = ROCK[bar % 4]
+    const drop = bar >= 10
+    const build = bar === 8 || bar === 9
+    for (let s = 0; s < 16; s++) {
+      const st = b0 + s * S
+      at(st, (t) => {
+        if (build) {
+          // the build: snare gets faster and louder, no bass
+          const every = bar === 8 ? 4 : s < 8 ? 2 : 1
+          if (s % every === 0) snare(t, 0.4 + (bar - 8) * 0.3 + s * 0.02)
+          if (s % 4 === 0) kick(t, 0.8)
+          return
+        }
+        if (s % 4 === 0) kick(t, drop ? 1.25 : 1)
+        if (s === 4 || s === 12) {
+          snare(t, 1)
+          if (drop) clap(t)
+        }
+        if (s % 2 === 0) hat(t, drop && s % 4 === 2, 0.7)
+        if (s % 2 === 0) bass(t, root - 12 + (s % 4 === 2 ? 12 : 0), S * 1.8)
+        if (!drop) guitar(t, root, 0.9) // chugging power-chord root
+        if (!drop) guitar(t, root + 7, 0.6)
+        if (drop && s % 4 === 2) chordHit(t, triad.map((n) => n + 12), S * 1.5) // supersaw offbeat stabs
+      })
+    }
+    if (bar === 0 || drop) at(b0, (t) => powerChord(t, root - 12))
+    if (bar % 4 === 0 || drop) at(b0, (t) => crash(t))
+    // the hook (intro + drop), on the lead in the intro and the brass in the drop
+    if (bar < 4 || drop) {
+      HOOK2[bar % 4].forEach((n, k) => {
+        if (n == null) return
+        at(b0 + k * 2 * S, (t) => (drop ? brass(t, n, 2 * S * 0.95, 1.3) : lead(t, n, 2 * S * 0.9, 1.1)))
+      })
+    }
+    if (drop) at(b0, (t) => wobble(t, root - 24, 16 * S))
+    // the guitar duel: Rose (bright lead) and the shark (distorted) trade bars
+    if (ROSE_LICKS[bar]) ROSE_LICKS[bar].forEach((n, k) => at(b0 + k * S, (t) => lead(t, n, S * 0.95, 1.3)))
+    if (SHARK_LICKS[bar]) SHARK_LICKS[bar].forEach(([k, n, len, bend, vib]) => at(b0 + k * S, (t) => soloNote(t, n, len * S, bend, vib)))
+  }
+  at(F.BUILD, (t) => riser(t, F.DROP - F.BUILD - 0.25))
+  // DJ Zaman: 3... 2... 1...
+  ;[3, 2, 1].forEach((n, k) => at(F.DROP - (3 - k) * B, (t) => blipAt(t, n === 1 ? 1760 : 880)))
+  at(F.DROP, (t) => {
+    megaBoom(t)
+    roarCrowd(t, 3)
+  })
+
+  // ===== ACT 4: TOTAL ISLAND CHAOS (57.25-68.5)
+  const STEP = 0.1
+  for (let s = F.CHAOS; s < F.COUNT; s += STEP) {
+    const i = Math.round((s - F.CHAOS) / STEP)
+    const k = i % 16
+    const bar = Math.floor(i / 16)
+    const ch = [[38, [62, 65, 69]], [34, [58, 62, 65]], [36, [60, 64, 67]], [33, [57, 61, 64]]][bar % 4]
+    at(s, (t) => {
+      if (k === 0 || k === 6 || k === 8 || k === 11 || k % 4 === 2) taiko(t, k === 0 ? 1.3 : 0.8)
+      if (k === 4 || k === 12) {
+        snare(t, 1)
+        clap(t)
+      }
+      hat(t, k % 4 === 2, 0.6)
+      stringNote(t, ch[1][[0, 0, 2, 1][k % 4]] - 12, 0.08)
+      if (k % 2 === 0) bass(t, ch[0] + 12, 0.18)
+      if (k === 0) choir(t, ch[1].map((n) => n - 12), 1.6, 1)
+      if (k === 0 && bar % 4 === 0) crash(t)
+    })
+  }
+  ;[F.CHAOS, F.CHAOS + 3.2].forEach((s) => at(s, (t) => braamWar(t, 38)))
+  at(F.CHAOS + 0.3, (t) => growl(t, 1.4)) // the giant rises
+  at(F.CHAOS + 1.2, (t) => wind(t, 9)) // the sharknado
+  at(F.SNEEZE, (t) => {
+    sneezeSfx(t, 2.4)
+    crash(t)
+  })
+  at(F.WAVE, (t) => noiseSrc(t, 4).connect(filter('lowpass', 700)).connect(env(t, 0.7, 3.6, 0.6))) // the tsunami roars past
+  at(F.TOSPACE, (t) => {
+    braamWar(t, 38)
+    choir(t, [62, 66, 69, 74], 1, 1.4)
+  })
+  for (const sh of shots) {
+    at(sh.at, (t) => cannonBoom(t))
+    at(sh.at + flight, (t) => explosion(t))
+  }
+  for (let k = 0; k < 16; k++) at(F.CHAOS + 0.5 + k * 0.47, (t) => meow(t, 600 + ((k * 137) % 300)))
+  // 3... 2... 1...
+  ;[0, 1, 2].forEach((k) => at(F.COUNT + k, (t) => {
+    blipAt(t, k === 2 ? 1760 : 880)
+    taiko(t, 1.2)
+  }))
+  for (let k = 0; k < 6; k++) at(F.COUNT + 1.5 + k * 0.25, (t) => heartbeat(t, t + 0.2, 1, 1))
+
+  // ===== LIFTOFF (68.5) -> SPACE (74.5-82)
+  at(F.LIFTOFF, (t) => {
+    megaBoom(t)
+    rocket(t, F.SPACE - F.LIFTOFF + 0.5)
+    rumbleSfx(t, 6, 0.9)
+  })
+  // a sunrise-in-space fanfare: D ... A ... D!
+  ;[[1.5, 50, 1.4], [3, 57, 1.4], [4.5, 62, 1.6]].forEach(([d, n, len]) => at(F.LIFTOFF + d, (t) => {
+    brass(t, n, len, 1.8)
+    brass(t, n + 12, len, 0.9)
+  }))
+  at(F.LIFTOFF + 4.5 + 0.8, (t) => choir(t, [62, 66, 69, 74], 1.2, 1.2))
+  ;[0, 0.25, 0.5, 0.75].forEach((d) => at(F.SPACE - 0.4 + d * 0.5, (t) => taiko(t, 1.3)))
+  at(F.SPACE, (t) => {
+    crash(t)
+    pad(t, 7.5, [62, 66, 69, 73, 76])
+    choir(t, [74, 78, 81], 7, 0.6)
+  })
+  // a music box in zero gravity (the concert hook, slow and twinkly)
+  const BOX = [86, 86, 88, 90, 88, 86, 83, 81, 85, 85, 86, 88, 85, 81]
+  BOX.forEach((n, k) => at(F.SPACE + 0.5 + k * 0.5, (t) => {
+    marimba(t, n, 0.13)
+    marimba(t + 0.25, n + 12, 0.04) // echo
+  }))
+
+  // ===== THE PARACHUTE (82) and SPLASH (88)
+  at(F.CHUTE, (t) => {
+    noiseSrc(t, 0.6).connect(filter('lowpass', 500)).connect(env(t, 0.9, 0.5, 0.01)) // FWOOMP
+    slideWhistle(t + 0.3, 2.6, 1600, 500)
+    slideWhistle(t + 3.1, 2.7, 1300, 300)
+  })
+  for (let k = 0; k < 10; k++) at(F.CHUTE + 0.3 + k * 0.56, (t) => bass(t, [38, 45, 38, 45, 36, 43, 36, 43, 33, 40][k], 0.45)) // oom-pah
+  at(F.SPLASH, (t) => {
+    noiseSrc(t, 1.8).connect(filter('highpass', 600)).connect(env(t, 0.8, 1.6, 0.005)) // SPLASH
+    kick(t, 1.5)
+    crash(t)
+    powerChord(t, 38)
+    brass(t, 62, 2.6, 1.6)
+    brass(t, 66, 2.6, 1.3)
+    brass(t, 69, 2.6, 1.3)
+    choir(t, [62, 66, 69, 74], 2.6, 1.4)
+  })
+  // ===== THE END: a music box plays the fanfare, and the tiny button goes "ding"
+  ;[[0, 74], [0.18, 74], [0.36, 74], [0.6, 81], [1.5, 78], [1.68, 81], [1.86, 86]].forEach(([d, n]) => at(F.TINY - 1.6 + d, (t) => marimba(t, n, 0.14)))
+  at(F.TINY + 0.6, (t) => blipAt(t, 2093))
+  at(F.END - 2.2, (t) => [74, 78, 81, 86].forEach((n, i) => marimba(t + i * 0.16, n, 0.12)))
+
+  ev.sort((a, b) => a[0] - b[0])
+  let i = 0
+  finaleTimer = setInterval(() => {
+    const horizon = ctx.currentTime + 0.25
+    while (i < ev.length && t0 + ev[i][0] < horizon) {
+      ev[i][1](t0 + ev[i][0])
+      i++
+    }
+    if (i >= ev.length) stopFinaleMusic()
+  }, 25)
+}
+
+// a dubstep-ish wobble bass for the drop
+function wobble(t, midi, dur) {
+  const o = ctx.createOscillator()
+  o.type = 'sawtooth'
+  o.frequency.value = hz(midi)
+  const o2 = ctx.createOscillator()
+  o2.type = 'square'
+  o2.frequency.value = hz(midi) * 0.5
+  const f = filter('lowpass', 300, 8)
+  const lfo = ctx.createOscillator()
+  const amt = ctx.createGain()
+  lfo.type = 'triangle'
+  lfo.frequency.value = (128 / 60) * 2 // eighth-note wobble
+  amt.gain.value = 900
+  lfo.connect(amt).connect(f.frequency)
+  const g = env(t, 0.4, dur, 0.01)
+  o.connect(f)
+  o2.connect(f)
+  f.connect(g)
+  for (const x of [o, o2, lfo]) {
+    x.start(t)
+    x.stop(t + dur + 0.05)
+  }
+}
+// howling wind (the sharknado)
+function wind(t, dur) {
+  const f = filter('bandpass', 500, 2)
+  const lfo = ctx.createOscillator()
+  const amt = ctx.createGain()
+  lfo.frequency.value = 0.4
+  amt.gain.value = 350
+  lfo.connect(amt).connect(f.frequency)
+  lfo.start(t)
+  lfo.stop(t + dur)
+  noiseSrc(t, dur).connect(f).connect(env(t, 0.35, dur, 1.5))
+}
+// a tiny cartoon meow (clones flying out of the machine)
+function meow(t, f0) {
+  const o = ctx.createOscillator()
+  o.type = 'triangle'
+  o.frequency.setValueAtTime(f0, t)
+  o.frequency.linearRampToValueAtTime(f0 * 1.5, t + 0.08)
+  o.frequency.exponentialRampToValueAtTime(f0 * 0.8, t + 0.3)
+  o.connect(filter('lowpass', 2500)).connect(env(t, 0.12, 0.3, 0.02))
+  o.start(t)
+  o.stop(t + 0.35)
+}
+// rocket engines: a roaring noise that brightens as it climbs
+function rocket(t, dur) {
+  const f = filter('lowpass', 200, 1)
+  f.frequency.setValueAtTime(200, t)
+  f.frequency.exponentialRampToValueAtTime(2600, t + dur * 0.6)
+  f.frequency.exponentialRampToValueAtTime(400, t + dur)
+  const g = ctx.createGain()
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.9, t + 0.4)
+  g.gain.setValueAtTime(0.9, t + dur * 0.6)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+  g.connect(mix)
+  noiseSrc(t, dur + 0.1).connect(f).connect(g)
+}
+// a cartoon slide whistle
+function slideWhistle(t, dur, from, to) {
+  const o = ctx.createOscillator()
+  o.type = 'sine'
+  o.frequency.setValueAtTime(from, t)
+  o.frequency.exponentialRampToValueAtTime(to, t + dur)
+  const vib = ctx.createOscillator()
+  const amt = ctx.createGain()
+  vib.frequency.value = 7
+  amt.gain.value = 18
+  vib.connect(amt).connect(o.frequency)
+  o.connect(env(t, 0.16, dur, 0.05))
+  for (const x of [o, vib]) {
+    x.start(t)
+    x.stop(t + dur + 0.05)
+  }
+}

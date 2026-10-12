@@ -15,6 +15,11 @@ export const world = {
     chat.set({ open: null, aim: null, near: null }) // nobody to talk to mid-teleport
     listeners.forEach((l) => l())
   },
+  // teleport within the current world (with the same white flash)
+  beam(spawn) {
+    state = { ...state, flash: performance.now(), spawn }
+    listeners.forEach((l) => l())
+  },
   subscribe(l) {
     listeners.add(l)
     return () => listeners.delete(l)

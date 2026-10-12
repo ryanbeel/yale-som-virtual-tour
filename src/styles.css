@@ -610,3 +610,111 @@ body.quake canvas {
     translate: 6px 0;
   }
 }
+
+/* THE FINALE: the secret button's "are you sure?" questions */
+.royal-ask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(circle at 50% 45%, rgba(58, 10, 90, 0.82), rgba(5, 0, 12, 0.94));
+}
+
+.royal-card {
+  width: min(420px, 100%);
+  padding: 26px 22px 22px;
+  border: 3px solid #ffd23f;
+  border-radius: 20px;
+  background: linear-gradient(160deg, #2a0a4a, #12051f);
+  color: #ffffff;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(255, 210, 63, 0.35);
+  animation: royal-in 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.royal-card.again {
+  animation: royal-in 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both, shiver 0.06s linear 0.45s 12;
+}
+
+.royal-crown {
+  font-size: 54px;
+  line-height: 1;
+  filter: drop-shadow(0 0 14px rgba(255, 210, 63, 0.8));
+}
+
+.royal-card h2 {
+  margin: 12px 0 6px;
+  font: 900 clamp(26px, 7vw, 36px) / 1.1 'Arial Black', Impact, system-ui, sans-serif;
+  color: #ffd23f;
+}
+
+.royal-card p {
+  margin: 6px 0 0;
+  color: #e9dcff;
+  font-size: 15px;
+}
+
+.royal-btns {
+  margin-top: 18px;
+}
+
+.royal-btns .go {
+  background: #ffd23f;
+  font-size: 18px;
+}
+
+.royal-btns .go.alt {
+  background: transparent;
+  border: 2px solid rgba(233, 220, 255, 0.35);
+  color: #e9dcff;
+}
+
+.royal-toast {
+  position: fixed;
+  left: 50%;
+  top: 22%;
+  z-index: 30;
+  max-width: calc(100vw - 32px);
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: rgba(18, 5, 31, 0.9);
+  border: 2px solid #ffd23f;
+  color: #ffd23f;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+  animation: royal-toast 3s ease-out forwards;
+}
+
+.flash.gold {
+  background: #ffd23f;
+}
+
+@keyframes royal-in {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes royal-toast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  10%,
+  75% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+}

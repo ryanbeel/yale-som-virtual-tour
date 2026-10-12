@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { warMusic, stopWarMusic } from './music.js'
-import { WAR } from './island.js'
+import { WAR, finaleLive } from './island.js'
 
 // THE GREAT TIKI-DINO WAR (~72 s), started by the GAME NIGHT button.
 // A dino and a tiki monster play rock-paper-scissors; the tiki cheats; the dino flips the table; then
@@ -77,7 +77,7 @@ export const war = {
   },
   // called from a click/tap so the browser lets the music play
   start() {
-    if (state.active) return
+    if (state.active || finaleLive.busy) return
     warMusic({ W, CANNON_SHOTS, FLIGHT })
     emit({ active: true, start: now(), stage: 'game', plays: state.plays + 1 })
   },

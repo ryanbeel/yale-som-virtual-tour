@@ -137,54 +137,7 @@ export default function Schott({ position, rotation = 0, front }) {
       <group ref={root} position={position} rotation={[0, rotation, 0]}>
         <mesh ref={hit} geometry={CYL} position={[0, 0.95, 0]} scale={[0.45, 1.9, 0.45]} visible={false} />
 
-        {/* brown shoes + khakis + belt */}
-        {[-1, 1].map((sx) => (
-          <group key={sx}>
-            <B g={BOX} c="#4a2f1f" p={[0.1 * sx, 0.045, 0.04]} s={[0.12, 0.08, 0.27]} />
-            <B g={CYL} c={KHAKI} p={[0.1 * sx, 0.49, 0]} s={[0.088, 0.82, 0.088]} />
-          </group>
-        ))}
-        <B g={CYL} c={KHAKI} p={[0, 0.86, 0]} s={[0.2, 0.1, 0.155]} />
-        <B g={CYL} c="#3b2618" p={[0, 0.92, 0]} s={[0.205, 0.045, 0.16]} />
-        <B g={BOX} c="#c0c4c8" o={{ metalness: 0.7, roughness: 0.3 }} p={[0, 0.92, 0.16]} s={[0.05, 0.035, 0.01]} />
-
-        {/* gingham oxford, open collar, button placket */}
-        <mesh geometry={TORSO} material={gingham()} position={[0, 1.22, 0]} />
-        <mesh geometry={SPH} material={gingham()} position={[0, 1.48, 0]} scale={[0.27, 0.1, 0.18]} />
-        <B g={BOX} c="#9fbfe2" p={[0, 1.15, 0.205]} s={[0.025, 0.5, 0.01]} />
-        {[1.0, 1.12, 1.24, 1.36].map((y) => (
-          <B key={y} c="#ffffff" p={[0, y, 0.213]} s={[0.009, 0.009, 0.004]} />
-        ))}
-        <B c={SKIN} p={[0, 1.5, 0.15]} s={[0.05, 0.05, 0.02]} />
-        {[-1, 1].map((sx) => (
-          <B key={sx} g={BOX} c="#c6dcf2" p={[0.055 * sx, 1.53, 0.14]} r={[0.2, 0, 0.5 * sx]} s={[0.08, 0.035, 0.012]} />
-        ))}
-        <Arm armRef={armR} side={-1} />
-        <Arm armRef={armL} side={1} watch />
-
-        {/* head: wavy brown hair, grey temples, big grin */}
-        <B g={CYL} c={SKIN} p={[0, 1.57, 0]} s={[0.05, 0.08, 0.05]} />
-        <group ref={head} position={[0, 1.71, 0]}>
-          <B c={SKIN} p={[0, 0, 0]} s={[0.12, 0.145, 0.13]} />
-          <B g={CAPSPH} c={HAIR} o={{ roughness: 0.95 }} p={[0, 0.012, -0.008]} s={[0.128, 0.15, 0.138]} />
-          {/* the wavy swoop on top */}
-          {[[-0.06, 0.125, 0.045, 0.05], [0.0, 0.14, 0.05, 0.055], [0.06, 0.13, 0.04, 0.05], [-0.03, 0.15, -0.02, 0.06], [0.04, 0.15, -0.03, 0.06]].map(([x, y, z, r], i) => (
-            <B key={i} c={HAIR} o={{ roughness: 0.95 }} p={[x, y, z]} s={[r * 1.1, r * 0.55, r * 0.9]} />
-          ))}
-          {[-1, 1].map((sx) => (
-            <group key={sx}>
-              <B c={GREY} p={[0.121 * sx, 0.045, 0.01]} s={[0.012, 0.035, 0.04]} />
-              <B c={SKIN} p={[0.123 * sx, 0, 0]} s={[0.02, 0.036, 0.02]} />
-              <B c="#ffffff" p={[0.045 * sx, 0.025, 0.112]} s={[0.022, 0.016, 0.012]} />
-              <B c="#3b2a1c" p={[0.045 * sx, 0.025, 0.122]} s={[0.011, 0.011, 0.008]} />
-              <B g={BOX} c={HAIR} p={[0.047 * sx, 0.06, 0.118]} r={[0, 0, 0.12 * sx]} s={[0.05, 0.013, 0.01]} />
-              <B c="#f2a99a" p={[0.075 * sx, -0.035, 0.105]} s={[0.022, 0.014, 0.008]} />
-            </group>
-          ))}
-          <B c={SKIN} p={[0, -0.005, 0.13]} s={[0.022, 0.032, 0.026]} />
-          <mesh ref={mouth} geometry={SPH} material={m('#5a1f22')} position={[0, -0.065, 0.114]} scale={[0.052, 0.018, 0.014]} />
-          <B g={BOX} c="#ffffff" p={[0, -0.056, 0.124]} s={[0.07, 0.012, 0.004]} />
-        </group>
+        <SchottBody rig={{ head, mouth, armL, armR }} />
 
         <sprite ref={bubble} material={bubbleMats[0]} position={[0.25, 2.15, 0]} scale={[0.6, 0.3, 1]} />
       </group>
@@ -422,6 +375,63 @@ function Containers({ position, rotation }) {
     <group position={position} rotation={[0, rotation + Math.PI / 2, 0]}>
       <mesh geometry={BOX} material={a} position={[0, 0.27, 0]} scale={[1.3, 0.54, 0.55]} />
       <mesh geometry={BOX} material={b} position={[0.05, 0.81, 0]} rotation={[0, 0.06, 0]} scale={[1.3, 0.54, 0.55]} />
+    </group>
+  )
+}
+
+// his body (classroom + the island finale share it). Faces +z.
+// `rig` holds refs ({ head, mouth, armL, armR }) so the owner can animate it.
+export function SchottBody({ rig }) {
+  return (
+    <group>
+      {/* brown shoes + khakis + belt */}
+      {[-1, 1].map((sx) => (
+        <group key={sx}>
+          <B g={BOX} c="#4a2f1f" p={[0.1 * sx, 0.045, 0.04]} s={[0.12, 0.08, 0.27]} />
+          <B g={CYL} c={KHAKI} p={[0.1 * sx, 0.49, 0]} s={[0.088, 0.82, 0.088]} />
+        </group>
+      ))}
+      <B g={CYL} c={KHAKI} p={[0, 0.86, 0]} s={[0.2, 0.1, 0.155]} />
+      <B g={CYL} c="#3b2618" p={[0, 0.92, 0]} s={[0.205, 0.045, 0.16]} />
+      <B g={BOX} c="#c0c4c8" o={{ metalness: 0.7, roughness: 0.3 }} p={[0, 0.92, 0.16]} s={[0.05, 0.035, 0.01]} />
+
+      {/* gingham oxford, open collar, button placket */}
+      <mesh geometry={TORSO} material={gingham()} position={[0, 1.22, 0]} />
+      <mesh geometry={SPH} material={gingham()} position={[0, 1.48, 0]} scale={[0.27, 0.1, 0.18]} />
+      <B g={BOX} c="#9fbfe2" p={[0, 1.15, 0.205]} s={[0.025, 0.5, 0.01]} />
+      {[1.0, 1.12, 1.24, 1.36].map((y) => (
+        <B key={y} c="#ffffff" p={[0, y, 0.213]} s={[0.009, 0.009, 0.004]} />
+      ))}
+      <B c={SKIN} p={[0, 1.5, 0.15]} s={[0.05, 0.05, 0.02]} />
+      {[-1, 1].map((sx) => (
+        <B key={sx} g={BOX} c="#c6dcf2" p={[0.055 * sx, 1.53, 0.14]} r={[0.2, 0, 0.5 * sx]} s={[0.08, 0.035, 0.012]} />
+      ))}
+      <Arm armRef={rig.armR} side={-1} />
+      <Arm armRef={rig.armL} side={1} watch />
+
+      {/* head: wavy brown hair, grey temples, big grin */}
+      <B g={CYL} c={SKIN} p={[0, 1.57, 0]} s={[0.05, 0.08, 0.05]} />
+      <group ref={rig.head} position={[0, 1.71, 0]}>
+        <B c={SKIN} p={[0, 0, 0]} s={[0.12, 0.145, 0.13]} />
+        <B g={CAPSPH} c={HAIR} o={{ roughness: 0.95 }} p={[0, 0.012, -0.008]} s={[0.128, 0.15, 0.138]} />
+        {/* the wavy swoop on top */}
+        {[[-0.06, 0.125, 0.045, 0.05], [0.0, 0.14, 0.05, 0.055], [0.06, 0.13, 0.04, 0.05], [-0.03, 0.15, -0.02, 0.06], [0.04, 0.15, -0.03, 0.06]].map(([x, y, z, r], i) => (
+          <B key={i} c={HAIR} o={{ roughness: 0.95 }} p={[x, y, z]} s={[r * 1.1, r * 0.55, r * 0.9]} />
+        ))}
+        {[-1, 1].map((sx) => (
+          <group key={sx}>
+            <B c={GREY} p={[0.121 * sx, 0.045, 0.01]} s={[0.012, 0.035, 0.04]} />
+            <B c={SKIN} p={[0.123 * sx, 0, 0]} s={[0.02, 0.036, 0.02]} />
+            <B c="#ffffff" p={[0.045 * sx, 0.025, 0.112]} s={[0.022, 0.016, 0.012]} />
+            <B c="#3b2a1c" p={[0.045 * sx, 0.025, 0.122]} s={[0.011, 0.011, 0.008]} />
+            <B g={BOX} c={HAIR} p={[0.047 * sx, 0.06, 0.118]} r={[0, 0, 0.12 * sx]} s={[0.05, 0.013, 0.01]} />
+            <B c="#f2a99a" p={[0.075 * sx, -0.035, 0.105]} s={[0.022, 0.014, 0.008]} />
+          </group>
+        ))}
+        <B c={SKIN} p={[0, -0.005, 0.13]} s={[0.022, 0.032, 0.026]} />
+        <mesh ref={rig.mouth} geometry={SPH} material={m('#5a1f22')} position={[0, -0.065, 0.114]} scale={[0.052, 0.018, 0.014]} />
+        <B g={BOX} c="#ffffff" p={[0, -0.056, 0.124]} s={[0.07, 0.012, 0.004]} />
+      </group>
     </group>
   )
 }

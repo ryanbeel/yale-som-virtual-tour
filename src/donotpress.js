@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { finaleLive } from './island.js'
 import { pressSfx } from './music.js'
 
 // DO NOT PRESS: a ~50-second event on the south beach. The alarm goes off, a thunderstorm rolls in,
@@ -63,7 +64,7 @@ export const press = {
   },
   // called from a click/tap so the browser lets the sound play
   start() {
-    if (state.active) return
+    if (state.active || finaleLive.busy) return
     pressSfx({ T, SNEEZES, LIGHTNING })
     emit({ active: true, start: now(), stage: 'alarm', presses: state.presses + 1 })
   },

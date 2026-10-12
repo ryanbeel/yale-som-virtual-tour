@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { finale } from './finale.js'
 import { bubbleMat } from './Allison.jsx'
 import { SHORE, STAGE, heightAt, inWater } from './island.js'
 import { SHARK_APPROACH, SHARK_LAND, SHARK_LEAP, concert, sharkSpot } from './concert.js'
@@ -61,7 +62,6 @@ export default function Shark() {
   const jaw = useRef()
   const bubble = useRef()
   const st = useRef({ x: 0, z: PATROL_R, yaw: Math.PI / 2, orbit: 0, rise: 0 })
-  const teeth = useMemo(() => Array.from({ length: 9 }, (_, i) => (i - 4) * 0.09), [])
   const guitar = useRef()
   const stageBubble = useRef()
   const spot = useRef()
@@ -165,6 +165,9 @@ export default function Shark() {
     const dt = Math.min(rawDt, 0.05)
     const t = clock.elapsedTime
     const s = st.current
+    // the finale has its own shark (surfing, shredding, sharknado): this one hides
+    root.current.visible = finale.t() < 0
+    if (!root.current.visible) return
     const st8 = stunt()
     if (st8) {
       flyStunt(st8, s, t)
@@ -261,54 +264,7 @@ export default function Shark() {
   return (
     <>
       <group ref={root}>
-        <group scale={1.35}>
-          {/* body + belly + snout */}
-          <B c={GREY} p={[0, 0, 0]} s={[0.55, 0.5, 1.7]} />
-          <B c={BELLY} p={[0, -0.18, 0.15]} s={[0.47, 0.33, 1.5]} />
-          <B c={GREY} p={[0, 0.03, 1.45]} s={[0.4, 0.33, 0.55]} />
-          {/* dorsal fin sticking out of the water */}
-          <B g={CONE} c={GREY} p={[0, 0.72, -0.1]} r={[-0.35, 0, 0]} s={[0.08, 0.75, 0.4]} />
-          {/* pectoral fins */}
-          {[-1, 1].map((sx) => (
-            <B key={sx} g={CONE} c={GREY} p={[0.55 * sx, -0.2, 0.4]} r={[0.9, 0, 1.4 * sx]} s={[0.06, 0.6, 0.28]} />
-          ))}
-          {/* eyes (big and friendly-ish) */}
-          {[-1, 1].map((sx) => (
-            <group key={sx}>
-              <B c="#ffffff" p={[0.3 * sx, 0.17, 1.55]} s={0.11} />
-              <B c="#111418" p={[0.33 * sx, 0.18, 1.62]} s={0.06} />
-              <B c="#ffffff" p={[0.34 * sx, 0.21, 1.66]} s={0.02} />
-            </group>
-          ))}
-          {/* mouth: upper teeth on the head, lower jaw opens */}
-          <B c="#7a2a35" p={[0, -0.13, 1.6]} s={[0.36, 0.08, 0.25]} />
-          {teeth.map((x) => (
-            <B key={x} g={CONE} c="#ffffff" p={[x, -0.12, 1.78 - Math.abs(x) * 0.6]} r={[Math.PI, 0, 0]} s={[0.035, 0.08, 0.035]} />
-          ))}
-          <group ref={jaw} position={[0, -0.15, 1.3]}>
-            <B c={BELLY} p={[0, -0.05, 0.25]} s={[0.36, 0.1, 0.4]} />
-            {teeth.map((x) => (
-              <B key={x} g={CONE} c="#ffffff" p={[x * 0.9, 0.04, 0.5 - Math.abs(x) * 0.6]} s={[0.03, 0.07, 0.03]} />
-            ))}
-          </group>
-          {/* red electric guitar strapped across its belly (only on stage) */}
-          <group ref={guitar} position={[0, -0.62, -0.1]} rotation={[0, 0.7, 0]} visible={false}>
-            <group rotation={[Math.PI / 2, 0, 0]}>
-              <B c="#e8222e" p={[-0.12, 0, 0]} s={[0.32, 0.26, 0.07]} />
-              <B c="#e8222e" p={[0.16, 0.04, 0]} s={[0.22, 0.19, 0.07]} />
-              <B c="#ffffff" p={[-0.02, -0.04, 0.05]} s={[0.16, 0.12, 0.02]} />
-              <B g={CONE} c="#1d1d22" p={[0.95, 0, 0]} r={[0, 0, -Math.PI / 2]} s={[0.035, 1.25, 0.03]} />
-              <B c="#1d1d22" p={[1.6, 0, 0]} s={[0.12, 0.07, 0.03]} />
-              <B c="#d9b45a" p={[-0.05, 0, 0.06]} s={[0.05, 0.05, 0.02]} />
-            </group>
-          </group>
-          {/* tail */}
-          <group ref={tail} position={[0, 0.02, -1.6]}>
-            <B c={GREY} p={[0, 0, -0.3]} s={[0.22, 0.25, 0.5]} />
-            <B g={CONE} c={GREY} p={[0, 0.45, -0.75]} r={[-0.9, 0, 0]} s={[0.06, 0.8, 0.3]} />
-            <B g={CONE} c={GREY} p={[0, -0.32, -0.7]} r={[-2.3, 0, 0]} s={[0.06, 0.55, 0.25]} />
-          </group>
-        </group>
+        <SharkBody rig={{ tail, jaw, guitar }} />
         <sprite ref={bubble} material={bubbles[0]} position={[0, 2.2, 1.2]} scale={[1.6, 0.8, 1]} visible={false} />
       </group>
       {/* stage extras live in world space: its rock-star speech bubble, a spotlight, takeoff splash */}
@@ -316,5 +272,61 @@ export default function Shark() {
       <pointLight ref={spot} color="#ffffff" intensity={0} distance={14} decay={1.2} />
       <instancedMesh ref={splash} args={[SPH, m('#ffffff'), N_SPLASH]} frustumCulled={false} />
     </>
+  )
+}
+
+// the shark's body (patrol + the island finale share it). Nose toward +z.
+// `rig` holds refs ({ tail, jaw, guitar }); the red guitar starts hidden.
+const TEETH = Array.from({ length: 9 }, (_, i) => (i - 4) * 0.09)
+export function SharkBody({ rig }) {
+  return (
+    <group scale={1.35}>
+      {/* body + belly + snout */}
+      <B c={GREY} p={[0, 0, 0]} s={[0.55, 0.5, 1.7]} />
+      <B c={BELLY} p={[0, -0.18, 0.15]} s={[0.47, 0.33, 1.5]} />
+      <B c={GREY} p={[0, 0.03, 1.45]} s={[0.4, 0.33, 0.55]} />
+      {/* dorsal fin sticking out of the water */}
+      <B g={CONE} c={GREY} p={[0, 0.72, -0.1]} r={[-0.35, 0, 0]} s={[0.08, 0.75, 0.4]} />
+      {/* pectoral fins */}
+      {[-1, 1].map((sx) => (
+        <B key={sx} g={CONE} c={GREY} p={[0.55 * sx, -0.2, 0.4]} r={[0.9, 0, 1.4 * sx]} s={[0.06, 0.6, 0.28]} />
+      ))}
+      {/* eyes (big and friendly-ish) */}
+      {[-1, 1].map((sx) => (
+        <group key={sx}>
+          <B c="#ffffff" p={[0.3 * sx, 0.17, 1.55]} s={0.11} />
+          <B c="#111418" p={[0.33 * sx, 0.18, 1.62]} s={0.06} />
+          <B c="#ffffff" p={[0.34 * sx, 0.21, 1.66]} s={0.02} />
+        </group>
+      ))}
+      {/* mouth: upper teeth on the head, lower jaw opens */}
+      <B c="#7a2a35" p={[0, -0.13, 1.6]} s={[0.36, 0.08, 0.25]} />
+      {TEETH.map((x) => (
+        <B key={x} g={CONE} c="#ffffff" p={[x, -0.12, 1.78 - Math.abs(x) * 0.6]} r={[Math.PI, 0, 0]} s={[0.035, 0.08, 0.035]} />
+      ))}
+      <group ref={rig.jaw} position={[0, -0.15, 1.3]}>
+        <B c={BELLY} p={[0, -0.05, 0.25]} s={[0.36, 0.1, 0.4]} />
+        {TEETH.map((x) => (
+          <B key={x} g={CONE} c="#ffffff" p={[x * 0.9, 0.04, 0.5 - Math.abs(x) * 0.6]} s={[0.03, 0.07, 0.03]} />
+        ))}
+      </group>
+      {/* red electric guitar strapped across its belly (only on stage) */}
+      <group ref={rig.guitar} position={[0, -0.62, -0.1]} rotation={[0, 0.7, 0]} visible={false}>
+        <group rotation={[Math.PI / 2, 0, 0]}>
+          <B c="#e8222e" p={[-0.12, 0, 0]} s={[0.32, 0.26, 0.07]} />
+          <B c="#e8222e" p={[0.16, 0.04, 0]} s={[0.22, 0.19, 0.07]} />
+          <B c="#ffffff" p={[-0.02, -0.04, 0.05]} s={[0.16, 0.12, 0.02]} />
+          <B g={CONE} c="#1d1d22" p={[0.95, 0, 0]} r={[0, 0, -Math.PI / 2]} s={[0.035, 1.25, 0.03]} />
+          <B c="#1d1d22" p={[1.6, 0, 0]} s={[0.12, 0.07, 0.03]} />
+          <B c="#d9b45a" p={[-0.05, 0, 0.06]} s={[0.05, 0.05, 0.02]} />
+        </group>
+      </group>
+      {/* tail */}
+      <group ref={rig.tail} position={[0, 0.02, -1.6]}>
+        <B c={GREY} p={[0, 0, -0.3]} s={[0.22, 0.25, 0.5]} />
+        <B g={CONE} c={GREY} p={[0, 0.45, -0.75]} r={[-0.9, 0, 0]} s={[0.06, 0.8, 0.3]} />
+        <B g={CONE} c={GREY} p={[0, -0.32, -0.7]} r={[-2.3, 0, 0]} s={[0.06, 0.55, 0.25]} />
+      </group>
+    </group>
   )
 }

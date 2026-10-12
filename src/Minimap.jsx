@@ -165,6 +165,15 @@ function drawIsland(g) {
   g.beginPath()
   g.arc(wx, wy, 4, 0, Math.PI * 2)
   g.fill()
+  // the secret button in the middle of the crater
+  const [fx, fy] = ipx(I.FINALE_BUTTON.x, I.FINALE_BUTTON.z)
+  g.fillStyle = '#ffd23f'
+  g.beginPath()
+  g.arc(fx, fy, 4.5, 0, Math.PI * 2)
+  g.fill()
+  g.strokeStyle = '#7a4fd1'
+  g.lineWidth = 1.5
+  g.stroke()
   // portal home
   const [ox, oy] = ipx(I.RETURN_PORTAL.x, I.RETURN_PORTAL.z)
   g.fillStyle = '#ff4fa3'
@@ -173,7 +182,7 @@ function drawIsland(g) {
   g.fill()
   g.fillStyle = '#ffffff'
   g.font = 'bold 9px system-ui, sans-serif'
-  g.fillText('CRATER', cx - 17, cy + 3)
+  g.fillText('CRATER', cx - 17, cy + 16)
   g.fillText('STAGE', sx - 14, sy - (I.STAGE.w / 2) * IS - 3)
   g.fillText('BAR', bx - 8, by + 14)
   g.fillText('CLONES', mx + 6, my + 3)

@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { concert } from './concert.js'
 import { LAST_SNEEZE, press } from './donotpress.js'
 import { CRATER, heightAt } from './island.js'
+import { F, finale, smooth } from './finale.js'
 
 // Halfway through the concert the Diamond Head crater wakes up: it rumbles and smokes, then a
 // volcano cone rises out of it and erupts (a lava fountain, glowing lava rivers, lava bombs raining
@@ -57,6 +58,14 @@ function rockMat() {
 
 // eruption level 0..1 (and how far the cone has grown) for the current moment
 function levels() {
+  // THE FINALE: the volcano rises behind the concert stage, rumbles in the build-up, erupts on the
+  // drop and keeps going through the chaos, then sinks before liftoff
+  const fe = finale.t()
+  if (fe >= 0) {
+    const grow = smooth((fe - F.SHOW) / 3) * (1 - smooth((fe - F.LIFTOFF + 1) / 3))
+    const rumble = fe >= F.BUILD && fe < F.DROP ? (fe - F.BUILD) / (F.DROP - F.BUILD) : 0
+    return { rumble, grow, erupting: fe >= F.DROP && fe < F.LIFTOFF - 1 ? fe - F.DROP : -1 }
+  }
   const { phase, showT, erupt, sinceEnd } = concert.timeline()
   const rumble = phase === 'show' ? Math.min(1, Math.max(0, (showT - (45 - RUMBLE)) / RUMBLE)) : 0
   let grow = 0
