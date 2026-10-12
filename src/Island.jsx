@@ -9,7 +9,8 @@ import Shark from './Shark.jsx'
 import Concert from './Concert.jsx'
 import { concert, useConcert } from './concert.js'
 import Volcano from './Volcano.jsx'
-import DoNotPress from './DoNotPress.jsx'
+import DoNotPress, { stormDark } from './DoNotPress.jsx'
+import { press } from './donotpress.js'
 import { Torch, Totem } from './TikiParty.jsx'
 import {
   BAR, BEACH_SPOTS, CRATER, HAMMOCK, HUTS, MACHINE, PALMS, PLAZA, RETURN_PORTAL, SHORE, SIGN, STAGE, TORCHES,
@@ -128,8 +129,11 @@ function Atmosphere() {
     }
   }, [scene, sky])
   useFrame(() => {
-    const { night } = concert.timeline()
-    if (Math.abs(night - last.current) < 0.002) return
+    const starry = concert.timeline().night // the concert's clear night has a moon and stars
+    const storm = stormDark(press.t()) // the giant's thunderstorm doesn't
+    const night = Math.max(starry, storm)
+    if (Math.abs(night - last.current) < 0.002 && Math.abs(storm - last.storm) < 0.002) return
+    last.storm = storm
     last.current = night
     const g = sky.c.getContext('2d')
     const grad = g.createLinearGradient(0, 0, 0, 256)
@@ -146,11 +150,11 @@ function Atmosphere() {
     sun.current.intensity = DAY.sun + (NIGHT.sun - DAY.sun) * night
     sun.current.color.copy(lerpColor('#fff3dc', '#9fb4ff', night))
     amb.current.intensity = DAY.amb + (NIGHT.amb - DAY.amb) * night
-    cloudMat.color.copy(lerpColor(DAY.cloud, NIGHT.cloud, night))
+    cloudMat.color.copy(lerpColor(DAY.cloud, storm > starry ? '#2c2f3a' : NIGHT.cloud, night))
     sunBall.current.visible = night < 0.5
-    moon.current.visible = night > 0.3
-    starMat.opacity = Math.max(0, night * 1.2 - 0.2)
-    stars.current.visible = night > 0.05
+    moon.current.visible = starry > 0.3 && storm < 0.3
+    starMat.opacity = Math.max(0, starry * 1.2 - 0.2) * (1 - storm)
+    stars.current.visible = starry > 0.05 && storm < 0.5
   })
   return (
     <>
@@ -256,7 +260,7 @@ function Water() {
   const waterMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#18bccb', transparent: true, opacity: 0.72, roughness: 0.12, metalness: 0.15, depthWrite: false }), [])
   useFrame(({ clock }) => {
     const t = clock.elapsedTime
-    waterMat.color.copy(lerpColor('#18bccb', '#0c3d66', concert.timeline().night))
+    waterMat.color.copy(lerpColor('#18bccb', '#0c3d66', Math.max(concert.timeline().night, stormDark(press.t()))))
     water.current.position.y = Math.sin(t * 0.8) * 0.04
     foam.current.position.y = 0.05 + Math.sin(t * 0.8) * 0.04
     foam.current.scale.setScalar(1 + Math.sin(t * 0.8) * 0.006)

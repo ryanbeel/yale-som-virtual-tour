@@ -4,14 +4,16 @@ import * as THREE from 'three'
 import { RyanJr } from './Allison.jsx'
 import { GEO as DINO_GEO, dinoParts } from './TikiParty.jsx'
 import { textBubble } from './Concert.jsx'
-import { T, press } from './donotpress.js'
+import { LAST_SNEEZE, LIGHTNING, SNEEZES, T, lastSneeze, press } from './donotpress.js'
 import { useTalkable } from './talkable.js'
-import { BUTTON, GIANT, heightAt, inland } from './island.js'
+import { BUTTON, GIANT, PALMS, heightAt, inland } from './island.js'
 
-// DO NOT PRESS. A big red button on the south beach. Press it and, over 30 seconds: alarms, the sea
-// boils, a 30-meter Ryan Jr. rises out of the ocean, shakes off like a wet cat (raining hundreds of
-// mini clones onto the beach), sneezes so hard every cat on the island goes flying, purrs under a
-// giant rainbow, and sinks back into the sea. (The HUD banners and screen shake live in App.)
+// DO NOT PRESS. A big red button on the south beach. Press it and, over ~50 seconds: alarms, a
+// thunderstorm rolls in, the sea boils, a 60-meter Ryan Jr. rises out of the ocean, shakes off like a
+// wet cat (raining hundreds of mini clones onto the beach), and sneezes THREE times, each bigger:
+// every cat, dino and the shark go flying, tsunami waves crash on the beach, coconuts rain from the
+// palms, and the last mega-sneeze sets off the volcano. Then he purrs under a giant rainbow and
+// sinks back into the sea. (The HUD banners and screen shake live in App; the score in music.js.)
 
 export const BUTTON_PROF = {
   id: 'do-not-press',
@@ -74,6 +76,9 @@ export default function DoNotPress() {
       <Sneeze />
       <Rainbow />
       <DinoPanic />
+      <Storm />
+      <Tsunami />
+      <Coconuts />
     </>
   )
 }
@@ -135,7 +140,7 @@ function Button() {
     cover.current.rotation.x = on ? -1.7 : -0.0
     knob.current.position.y = 1.32 - (on && e < 0.4 ? 0.06 : 0)
     knob.current.material.emissiveIntensity = on ? 0.4 : 0.6 + Math.sin(t * 4) * 0.4
-    const spin = on && e < T.RISEN
+    const spin = on && e < LAST_SNEEZE + 2
     beacons.current.forEach((b, i) => b && (b.rotation.y = spin ? t * 9 + i * Math.PI : 0))
     alarm.current.intensity = spin ? 25 + Math.sin(t * 18) * 20 : 0
     sign.current.material = press.get().presses > 0 ? signMats.used : signMats.idle
@@ -217,13 +222,18 @@ function SeaBoil() {
 
 // ---------- GIANT RYAN JR.
 export function giantPose(e) {
-  // how high he's risen (0 underwater .. 1 standing), plus head tilt and shake
+  // how high he's risen (0 underwater .. 1 standing), how far he's waded in, head tilt and shake
   const rise = smooth((e - T.RISE) / (T.RISEN - T.RISE)) * (1 - smooth((e - T.SINK) / (T.END - T.SINK)))
-  const shake = e >= T.SHAKE && e < T.AHH ? Math.sin(e * 38) * 0.22 * Math.sin(((e - T.SHAKE) / (T.AHH - T.SHAKE)) * Math.PI) : 0
+  let shake = e >= T.SHAKE && e < T.SHAKE + 4 ? Math.sin(e * 38) * 0.22 * Math.sin(((e - T.SHAKE) / 4) * Math.PI) : 0
   let tilt = 0
-  if (e >= T.AHH && e < T.SNEEZE) tilt = -0.35 * smooth((e - T.AHH) / (T.SNEEZE - T.AHH)) // head back... ah... ahh...
-  else if (e >= T.SNEEZE && e < T.SNEEZE + 1.5) tilt = 0.4 * Math.sin(((e - T.SNEEZE) / 1.5) * Math.PI) // CHOO!
-  return { rise, shake, tilt }
+  for (const sn of SNEEZES) {
+    if (e >= sn.at - sn.build && e < sn.at) tilt = -0.35 * smooth((e - (sn.at - sn.build)) / sn.build) // ah… ahh…
+    else if (e >= sn.at && e < sn.at + 1.5) tilt = 0.3 * sn.power * Math.sin(((e - sn.at) / 1.5) * Math.PI) // CHOO!
+  }
+  if (e >= T.CLOSER - 2 && e < T.CLOSER) shake = Math.sin(e * 20) * 0.05 // *sniff sniff*
+  // wades ~28 m toward the beach after the 2nd sneeze; the mega-sneeze knocks him back
+  const forward = 28 * smooth((e - T.CLOSER) / (T.CLOSE - T.CLOSER)) - 34 * smooth((e - LAST_SNEEZE) / 1.2)
+  return { rise, shake, tilt, forward }
 }
 
 function Giant() {
@@ -239,8 +249,11 @@ function Giant() {
   const lines = useMemo(
     () => ({
       mrrow: textBubble('MRRROW?', '#1d1d22'),
-      ahh: textBubble('ah… ahh… AHHH…', '#1d1d22'),
-      choo: textBubble('ACHOO!!!', '#d62839'),
+      ahh: textBubble('ah… ahh…', '#1d1d22'),
+      ahhh: textBubble('ah… AH… AAAHHHH…', '#d62839'),
+      choo: [textBubble('ACHOO!', '#d62839'), textBubble('ACHOO!!', '#d62839'), textBubble('ACHOOOOOO!!!', '#d62839')],
+      sniff: textBubble('*sniff* …*sniff*', '#1d1d22'),
+      closer: textBubble('mrrrrrow…', '#1d1d22'),
       purr: textBubble('purrrrrrr 😸', '#ff4fa3'),
     }),
     [],
@@ -253,23 +266,27 @@ function Giant() {
       drops.current.visible = false
       return
     }
-    const { rise, shake, tilt } = giantPose(e)
-    root.current.position.set(GIANT.x, SUNK + rise * (UP - SUNK), GIANT.z)
+    const { rise, shake, tilt, forward } = giantPose(e)
+    root.current.position.set(GIANT.x, SUNK + rise * (UP - SUNK), GIANT.z - forward)
     body.current.rotation.set(tilt, 0, shake)
     // speech
     let line = null
     if (e >= 9.5 && e < 12.8) line = lines.mrrow
-    else if (e >= T.AHH && e < T.SNEEZE) line = lines.ahh
-    else if (e >= T.SNEEZE && e < T.SNEEZE + 2.2) line = lines.choo
-    else if (e >= 22.5 && e < T.SINK + 0.5) line = lines.purr
+    if (e >= SNEEZES[0].at + 2.4 && e < SNEEZES[1].at - SNEEZES[1].build) line = lines.sniff
+    if (e >= T.CLOSER && e < T.CLOSE) line = lines.closer
+    SNEEZES.forEach((sn, i) => {
+      if (e >= sn.at - sn.build && e < sn.at) line = i === 2 ? lines.ahhh : lines.ahh
+      else if (e >= sn.at && e < sn.at + 2.2) line = lines.choo[i]
+    })
+    if (e >= LAST_SNEEZE + 3 && e < T.SINK + 0.5) line = lines.purr
     bubble.current.visible = !!line
     if (line) bubble.current.material = line
     // water pouring off him as he rises and shakes
-    const wet = e < T.AHH
+    const wet = e < SNEEZES[0].at - SNEEZES[0].build
     drops.current.visible = wet
     dropData.forEach((d, i) => {
       const u = ((e + d.o) % d.p) / d.p
-      tmp.position.set(GIANT.x + d.x * (1 + (shake ? 0.6 : 0)), SUNK + rise * (UP - SUNK) + d.y * (1 - u), GIANT.z + d.z)
+      tmp.position.set(GIANT.x + d.x * (1 + (shake ? 0.6 : 0)), SUNK + rise * (UP - SUNK) + d.y * (1 - u), GIANT.z - forward + d.z)
       tmp.scale.setScalar(wet ? 0.6 + (1 - u) * 0.6 : 0)
       tmp.updateMatrix()
       drops.current.setMatrixAt(i, tmp.matrix)
@@ -307,11 +324,14 @@ const MINI_GEO = { sphere: SPH, cone: CONE, cyl: CYL }
 
 // sneeze launch: every cat goes up in slow motion and spins (also used by IslandCats)
 export function sneezeLift(e, seed) {
-  const s = (e - T.SNEEZE) * 0.55 // slow motion
-  if (s < 0 || s > 2.6) return null
-  const vy = 7 + (seed % 1) * 6
-  const y = Math.max(0, vy * s - 4.9 * 0.55 * s * s * 2)
-  return { y, spin: s * (4 + (seed % 1) * 6) }
+  const sn = lastSneeze(e)
+  if (!sn) return null
+  const s = sn.since * 0.55 // slow motion
+  const vy = (7 + (seed % 1) * 6) * sn.power ** 0.8
+  const g = 5.4
+  const flight = (2 * vy) / g
+  if (s > flight) return null
+  return { y: Math.max(0, vy * s - 0.5 * g * s * s), spin: s * (4 + (seed % 1) * 6) * sn.power }
 }
 
 function MiniClones() {
@@ -403,19 +423,23 @@ function Sneeze() {
   }, [])
   useFrame(() => {
     const e = press.t()
-    const a = e - T.SNEEZE
+    const sn = lastSneeze(e)
+    const a = sn ? sn.since : -1
+    const pw = sn ? sn.power : 1
+    const gz = GIANT.z - giantPose(e).forward
     rings.current.forEach((r, i) => {
       if (!r) return
       const u = a - i * 0.25
       r.visible = u >= 0 && u < 2.4
-      r.scale.setScalar(4 + u * 110)
+      r.position.z = gz - 6
+      r.scale.setScalar(4 + u * 110 * pw)
       ringMats[i].opacity = 0.85 * (1 - u / 2.4)
     })
     windData.forEach((w, i) => {
       const u = a - w.o
       if (u >= 0 && u < 1.8) {
-        tmp.position.set(GIANT.x + w.x, w.y, GIANT.z - 10 - u * w.v)
-        tmp.scale.set(0.12, 0.12, 4 + u * 3)
+        tmp.position.set(GIANT.x + w.x * pw, w.y * pw, gz - 10 - u * w.v * pw)
+        tmp.scale.set(0.12 * pw, 0.12 * pw, (4 + u * 3) * pw)
       } else tmp.scale.setScalar(0)
       tmp.updateMatrix()
       wind.current.setMatrixAt(i, tmp.matrix)
@@ -441,7 +465,7 @@ function Rainbow() {
   const mats2 = useMemo(() => RAINBOW.map((c) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, fog: false })), [])
   useFrame(() => {
     const e = press.t()
-    const k = smooth((e - (T.SNEEZE + 1)) / 2.5) * (1 - smooth((e - (T.END - 1.8)) / 1.6))
+    const k = smooth((e - (LAST_SNEEZE + 1.5)) / 2.5) * (1 - smooth((e - (T.END - 1.8)) / 1.6))
     group.current.visible = k > 0.001
     mats2.forEach((mt) => (mt.opacity = 0.75 * k))
   })
@@ -534,7 +558,25 @@ function DinoPanic() {
         if (sp) sp.visible = false
         return
       }
-      const run = Math.min(e, T.SNEEZE) - d.appear
+      // flights so far: each sneeze blows it further from the giant; while airborne, run time freezes
+      let pushZ = 0
+      let pushX = 0
+      let air = null
+      let dazed = null
+      let frozen = 0
+      for (const sn of SNEEZES) {
+        const s2 = (e - sn.at) * 0.5
+        if (s2 < 0) break
+        const vy = d.vy * sn.power ** 0.6
+        const flight = (2 * vy) / 9.8
+        const f = Math.min(s2, flight)
+        pushZ += d.push * sn.power * 0.6 * (f / flight)
+        pushX += (d.seed - 0.5) * d.push * 0.5 * (f / flight)
+        frozen += Math.min(e - sn.at, flight / 0.5 + 1.6)
+        if (s2 < flight) air = { y: vy * f - 4.9 * f * f, spin: s2 * (5 + d.seed * 6) * sn.power }
+        else if (s2 < flight + 0.8) dazed = true
+      }
+      const run = e - d.appear - frozen
       let x
       let z
       let yaw
@@ -544,39 +586,39 @@ function DinoPanic() {
         z = d.cz + Math.sin(a) * 2.5
         yaw = a + Math.PI
       } else {
-        const k = Math.min(d.route.length - 2, Math.floor(run / d.leg))
-        const u = Math.min(1, run / d.leg - k)
+        const legs = run / d.leg
+        const k = Math.floor(legs) % (d.route.length - 1)
+        const u = legs - Math.floor(legs)
         const [ax, az] = d.route[k]
         const [bx, bz] = d.route[k + 1]
         x = ax + (bx - ax) * u
         z = az + (bz - az) * u
         yaw = Math.atan2(bx - ax, bz - az)
       }
+      x += pushX
+      z -= pushZ
       let y = Math.abs(Math.sin(run * 14 + d.seed * 9)) * 0.35 // frantic little hops
       let pitch = 0
       let roll = Math.sin(run * 14) * 0.25
       let line = PANIC_LINES[(d.line + Math.floor(run / 2.2)) % PANIC_LINES.length]
       let talk = (run + d.seed * 3) % 2.2 < 1.4
-      // ACHOO: blown sky-high and away from the giant (north), tumbling in slow motion
-      const s = (e - T.SNEEZE) * 0.5
-      if (s >= 0) {
-        const flight = (2 * d.vy) / 9.8
-        const f = Math.min(s, flight)
-        z -= d.push * (f / flight)
-        x += (d.seed - 0.5) * d.push * 0.5 * (f / flight)
-        if (s < flight) {
-          y = d.vy * f - 4.9 * f * f
-          pitch = s * (5 + d.seed * 6)
-          roll = s * 3
-          line = 'WAAAAAAH!!!'
-          talk = d.seed < 0.5
-        } else {
-          y = 0
-          pitch = 0
-          roll = 1.4 // landed in a dazed heap
-          line = LANDED_LINES[Math.floor(d.seed * LANDED_LINES.length)]
-          talk = true
-        }
+      if (air) {
+        y = air.y
+        pitch = air.spin
+        roll = air.spin * 0.5
+        line = 'WAAAAAAH!!!'
+        talk = d.seed < 0.5
+      } else if (dazed) {
+        y = 0
+        roll = 1.4 // landed in a dazed heap
+        line = LANDED_LINES[Math.floor(d.seed * LANDED_LINES.length)]
+        talk = true
+      } else if (e >= LAST_SNEEZE && !air) {
+        // after the mega-sneeze they just lie there
+        y = 0
+        roll = 1.4
+        line = LANDED_LINES[Math.floor(d.seed * LANDED_LINES.length)]
+        talk = d.seed < 0.6
       }
       y += Math.max(heightAt(x, z), 0)
       roots[i].compose(V.set(x, y, z), Q.setFromEuler(E.set(pitch, yaw, roll, 'YXZ')), S.setScalar(1.6))
@@ -606,4 +648,187 @@ function DinoPanic() {
       ))}
     </>
   )
+}
+
+// ---------- a thunderstorm: the sky darkens, rain pours and lightning strikes the sea
+export function stormDark(e) {
+  if (e < 0) return 0
+  return 0.78 * smooth((e - 5) / 3) * (1 - smooth((e - (T.BLESS - 2)) / 3))
+}
+
+const N_RAIN = 500
+function Storm() {
+  const rain = useRef()
+  const bolts = useRef([])
+  const flash = useRef()
+  const tmp = useMemo(() => new THREE.Object3D(), [])
+  const drops = useMemo(() => {
+    const r = rand(55)
+    return Array.from({ length: N_RAIN }, () => ({ x: (r() - 0.5) * 70, z: (r() - 0.5) * 70, o: r(), v: 18 + r() * 8 }))
+  }, [])
+  // a jagged bolt per strike, in a random spot out over the sea
+  const strikes = useMemo(() => {
+    const r = rand(9)
+    return LIGHTNING.map((at) => {
+      const x = -70 + r() * 150
+      const z = 70 + r() * 110
+      const pts = [[x, 90, z]]
+      for (let k = 1; k <= 9; k++) pts.push([x + (r() - 0.5) * 14, 90 - k * 10, z + (r() - 0.5) * 8])
+      return { at, x, z, pts }
+    })
+  }, [])
+  const boltMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#eaf6ff', fog: false }), [])
+  useFrame(({ camera }) => {
+    const e = press.t()
+    const dark = stormDark(e)
+    rain.current.visible = dark > 0.3
+    if (rain.current.visible) {
+      drops.forEach((d, i) => {
+        const fall = ((e * d.v + d.o * 40) % 40)
+        tmp.position.set(camera.position.x + d.x, camera.position.y + 22 - fall, camera.position.z + d.z)
+        tmp.rotation.set(0.25, 0, 0)
+        tmp.scale.set(0.03, 0.9, 0.03)
+        tmp.updateMatrix()
+        rain.current.setMatrixAt(i, tmp.matrix)
+      })
+      rain.current.instanceMatrix.needsUpdate = true
+    }
+    let lit = 0
+    strikes.forEach((s, i) => {
+      const a = e - s.at
+      // double flicker: on, off, on
+      const on = a >= 0 && (a < 0.08 || (a > 0.14 && a < 0.26))
+      if (bolts.current[i]) bolts.current[i].visible = on
+      if (on) lit = 1
+    })
+    flash.current.intensity = lit * 2.2 // the whole island lights up (an ambient flash is much cheaper than a point light)
+  })
+  return (
+    <>
+      <instancedMesh ref={rain} args={[BOX, m('#bcd6ff', { transparent: true, opacity: 0.55 }), N_RAIN]} frustumCulled={false} visible={false} />
+      {strikes.map((s, i) => (
+        <group key={i} ref={(el) => (bolts.current[i] = el)} visible={false}>
+          {s.pts.slice(1).map((p, k) => {
+            const a = s.pts[k]
+            const mid = [(a[0] + p[0]) / 2, (a[1] + p[1]) / 2, (a[2] + p[2]) / 2]
+            const len = Math.hypot(p[0] - a[0], p[1] - a[1], p[2] - a[2])
+            const dir = new THREE.Vector3(p[0] - a[0], p[1] - a[1], p[2] - a[2]).normalize()
+            const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
+            return <mesh key={k} geometry={BOX} material={boltMat} position={mid} quaternion={q} scale={[0.6, len, 0.6]} />
+          })}
+        </group>
+      ))}
+      <ambientLight ref={flash} color="#dfe9ff" intensity={0} />
+    </>
+  )
+}
+
+// ---------- a tsunami wave rolls in from each sneeze and crashes on the beach
+const SHORE_Z = 54 // roughly where the south beach meets the sea, in front of the button
+function Tsunami() {
+  const waves = useRef([])
+  const splash = useRef()
+  const tmp = useMemo(() => new THREE.Object3D(), [])
+  const waveMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1fa4c4', roughness: 0.2, transparent: true, opacity: 0.9 }), [])
+  const capMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.4 }), [])
+  const spray = useMemo(() => {
+    const r = rand(21)
+    return Array.from({ length: 80 }, () => ({ x: -40 + r() * 100, vy: 6 + r() * 9, vz: -2 - r() * 5, s: 0.4 + r() * 0.8 }))
+  }, [])
+  useFrame(() => {
+    const e = press.t()
+    let crash = null
+    SNEEZES.forEach((sn, i) => {
+      const w = waves.current[i]
+      if (!w) return
+      const a = e - sn.at - 0.4
+      const gz = GIANT.z - giantPose(sn.at).forward
+      const travel = gz - SHORE_Z
+      const u = a / 3.2
+      w.visible = a >= 0 && u < 1
+      if (!w.visible) return
+      // a long curling ridge of water moving toward the beach, growing as it comes
+      w.position.set(GIANT.x, -0.3, gz - u * travel)
+      w.scale.set(1 + u * 0.8, (1.2 + u * 2.2) * sn.power, 1)
+      if (u > 0.92) crash = { a: (u - 0.92) * 3.2, power: sn.power }
+    })
+    // the wave crashes: spray explodes up all along the beach
+    SNEEZES.forEach((sn) => {
+      const a = e - sn.at - 0.4 - 3.2 * 0.95
+      if (a >= 0 && a < 1.6) crash = { a, power: sn.power }
+    })
+    spray.forEach((d, i) => {
+      if (crash) {
+        const a = crash.a
+        tmp.position.set(d.x, Math.max(0, d.vy * crash.power * a - 4.9 * a * a), SHORE_Z + d.vz * a)
+        tmp.scale.setScalar(d.s * crash.power * Math.max(0, 1 - a / 1.6))
+      } else tmp.scale.setScalar(0)
+      tmp.updateMatrix()
+      splash.current.setMatrixAt(i, tmp.matrix)
+    })
+    splash.current.instanceMatrix.needsUpdate = true
+  })
+  return (
+    <>
+      {SNEEZES.map((sn, i) => (
+        <group key={i} ref={(el) => (waves.current[i] = el)} visible={false}>
+          <mesh material={waveMat} rotation={[0, 0, Math.PI / 2]} scale={[1, 70, 1]}>
+            <cylinderGeometry args={[1, 1.6, 1, 16, 1]} />
+          </mesh>
+          <mesh material={capMat} position={[0, 1.2, -0.6]} rotation={[0, 0, Math.PI / 2]} scale={[0.5, 70, 0.7]}>
+            <cylinderGeometry args={[1, 1, 1, 12, 1]} />
+          </mesh>
+        </group>
+      ))}
+      <instancedMesh ref={splash} args={[SPH, m('#ffffff'), spray.length]} frustumCulled={false} />
+    </>
+  )
+}
+
+// ---------- coconuts shaken loose from the palms by the 2nd and 3rd sneezes
+function Coconuts() {
+  const ref = useRef()
+  const tmp = useMemo(() => new THREE.Object3D(), [])
+  const nuts = useMemo(() => {
+    const r = rand(66)
+    const near = PALMS.filter(([x, z]) => Math.hypot(x - BUTTON.x, z - BUTTON.z) < 45)
+    return Array.from({ length: Math.min(90, near.length * 3) }, (_, i) => {
+      const [x, z] = near[i % near.length]
+      return { x: x + (r() - 0.5) * 1.6, z: z + (r() - 0.5) * 1.6, h: 6 + r() * 1.5, delay: r() * 0.9, bounce: 1 + r() * 1.5, spin: r() * 9 }
+    })
+  }, [])
+  useFrame(() => {
+    const e = press.t()
+    nuts.forEach((c, i) => {
+      // they drop on the 2nd sneeze and stay on the ground; the 3rd sneeze bounces them up again
+      const a = e - SNEEZES[1].at - c.delay
+      const b = e - SNEEZES[2].at - c.delay * 0.5
+      const ground = heightAt(c.x, c.z) + 0.18
+      let y = null
+      let spin = 0
+      if (a >= 0 && e < T.END) {
+        const fallT = Math.sqrt((2 * (c.h - ground)) / 9.8)
+        if (a < fallT) y = c.h - 4.9 * a * a
+        else {
+          const k = a - fallT // a couple of bounces
+          y = ground + Math.max(0, c.bounce * Math.abs(Math.sin(k * 5)) * Math.exp(-k * 2.5))
+        }
+        spin = a * c.spin
+        if (b >= 0 && b < 2) {
+          y = ground + Math.max(0, 9 * b - 4.9 * b * b) * 1.4
+          spin = b * c.spin * 2
+        }
+      }
+      if (y == null) tmp.scale.setScalar(0)
+      else {
+        tmp.position.set(c.x, y, c.z)
+        tmp.rotation.set(spin, spin * 0.7, 0)
+        tmp.scale.setScalar(0.17)
+      }
+      tmp.updateMatrix()
+      ref.current.setMatrixAt(i, tmp.matrix)
+    })
+    ref.current.instanceMatrix.needsUpdate = true
+  })
+  return <instancedMesh ref={ref} args={[SPH, m('#5a3d22'), nuts.length]} frustumCulled={false} />
 }

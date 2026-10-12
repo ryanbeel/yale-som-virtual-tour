@@ -573,3 +573,30 @@ body.quake canvas {
     transform: translate(-8px, -6px) rotate(-0.4deg);
   }
 }
+
+.event-title.shiver {
+  color: #ff3b3b;
+  animation: shark-solo 3.6s ease-out forwards, shiver 0.06s linear infinite;
+}
+
+.event-title.mega {
+  font-size: clamp(64px, 19vw, 230px);
+  color: #ffffff;
+  text-shadow: 0 0 50px #ffd23f, 0 0 100px #ff4fa3;
+  animation: shark-solo 5s ease-out forwards, shiver 0.05s linear infinite;
+}
+
+.flash.long {
+  animation-duration: 2.6s;
+}
+
+/* shiver with the `translate` property: composited by the GPU, no relayout or repaint of the text */
+@keyframes shiver {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 6px 0;
+  }
+}

@@ -8,7 +8,7 @@ import TouchControls from './TouchControls.jsx'
 import ChatWindow from './ChatWindow.jsx'
 import { chat, talkTo, useChat } from './chat.js'
 import { concert, useConcert } from './concert.js'
-import { usePress } from './donotpress.js'
+import { SNEEZES, T as PRESS, usePress } from './donotpress.js'
 import { EYE, SPAWN, collide, floorAt, locate } from './layout.js'
 import * as island from './island.js'
 import { useWorld } from './world.js'
@@ -47,11 +47,17 @@ export default function App() {
     const at = (ms, fn) => setTimeout(fn, ms)
     const timers = [
       at(3000, () => body.add('rumble')),
-      at(13000, () => body.remove('rumble')),
-      at(19500, () => body.add('quake')),
-      at(21500, () => body.remove('quake')),
-      at(23000, () => body.add('rumble')),
-      at(28000, () => body.remove('rumble')),
+      at(PRESS.RISEN * 1000, () => body.remove('rumble')),
+      at(PRESS.CLOSER * 1000, () => body.add('rumble')), // he's wading closer...
+      ...SNEEZES.flatMap((sn) => [
+        at(sn.at * 1000, () => {
+          body.remove('rumble')
+          body.add('quake')
+        }),
+        at((sn.at + 1.2 + sn.power) * 1000, () => body.remove('quake')),
+      ]),
+      at((SNEEZES.at(-1).at + 3) * 1000, () => body.add('rumble')), // the purr
+      at(PRESS.SINK * 1000, () => body.remove('rumble')),
     ]
     return () => {
       timers.forEach(clearTimeout)
@@ -118,10 +124,25 @@ export default function App() {
           {pressed.stage === 'alarm' && <div className="alarm-vignette" />}
           {pressed.stage === 'alarm' && <div className="event-title red">⚠️ YOU PRESSED IT ⚠️</div>}
           {pressed.stage === 'giant' && <div className="event-title">😱 GIANT RYAN JR.!!!</div>}
-          {pressed.stage === 'sneeze' && (
+          {pressed.stage === 'sneeze1' && (
             <>
               <div className="flash" />
-              <div className="event-title huge">ACHOO!!!</div>
+              <div className="event-title huge">ACHOO!</div>
+            </>
+          )}
+          {pressed.stage === 'notdone' && <div className="event-title soft">…he's not done.</div>}
+          {pressed.stage === 'sneeze2' && (
+            <>
+              <div className="flash" />
+              <div className="event-title huge">ACHOO!!</div>
+            </>
+          )}
+          {pressed.stage === 'closer' && <div className="event-title red">😨 HE'S COMING CLOSER</div>}
+          {pressed.stage === 'ahh' && <div className="event-title shiver">ah… AH… AAAHHHH…</div>}
+          {pressed.stage === 'sneeze3' && (
+            <>
+              <div className="flash long" />
+              <div className="event-title mega">ACHOOOOOO!!!</div>
             </>
           )}
           {pressed.stage === 'bless' && <div className="event-title soft">bless you. 🐾</div>}

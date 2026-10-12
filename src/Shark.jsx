@@ -5,7 +5,7 @@ import { bubbleMat } from './Allison.jsx'
 import { SHORE, STAGE, heightAt, inWater } from './island.js'
 import { SHARK_APPROACH, SHARK_LAND, SHARK_LEAP, concert, sharkSpot } from './concert.js'
 import { textBubble } from './Concert.jsx'
-import { T as PRESS, press } from './donotpress.js'
+import { lastSneeze, press } from './donotpress.js'
 import { GIANT } from './island.js'
 
 // A big cartoon shark. It patrols offshore with its fin above the waves; step into the water and it
@@ -239,9 +239,12 @@ export default function Shark() {
     const jump = leap < 1 ? Math.sin(leap * Math.PI) * 6 : 0
     const flip = leap < 1 ? -Math.cos(leap * Math.PI) * 0.9 : 0
     // ACHOO: the sneeze launches the shark way up into the sky, spinning
-    const sa = (press.t() - PRESS.SNEEZE - 0.3) * 0.55
-    const launched = sa >= 0 && sa < 3.2
-    const fly = launched ? 22 * sa - 6.9 * sa * sa : 0
+    // every sneeze launches it again, higher each time
+    const sn = press.t() >= 0 ? lastSneeze(press.t()) : null
+    const sa = sn ? (sn.since - 0.3) * 0.55 : -1
+    const vy = sn ? 22 * sn.power ** 0.7 : 0
+    const launched = sa >= 0 && sa < (2 * vy) / 13.8
+    const fly = launched ? vy * sa - 6.9 * sa * sa : 0
     root.current.position.set(s.x, -0.45 + s.rise * 0.55 + jump + Math.max(0, fly) + Math.sin(t * 1.5) * 0.06, s.z)
     root.current.rotation.set(-s.rise * 0.18 + flip + (launched ? sa * 4 : 0), s.yaw, Math.sin(t * 3) * 0.05 + (launched ? sa * 2 : 0))
     if (launched && !close) {

@@ -7,6 +7,7 @@
 let ctx = null
 let mix = null
 let master = null
+let soloBus = null // distorted lead guitar channel for the shark's solo
 let noise = null
 let timer = null
 let muted = false
@@ -33,6 +34,22 @@ export function prime() {
     mix = ctx.createGain()
     mix.gain.value = 0.9
     mix.connect(comp).connect(master).connect(ctx.destination)
+    // the shark's guitar rig: hard clipping, then a "speaker cabinet" (cut the fizz, push the mids)
+    const drive = ctx.createWaveShaper()
+    const curve = new Float32Array(1024)
+    for (let i = 0; i < 1024; i++) curve[i] = Math.tanh(((i / 512) - 1) * 9)
+    drive.curve = curve
+    drive.oversample = '4x'
+    const cab = ctx.createBiquadFilter()
+    cab.type = 'lowpass'
+    cab.frequency.value = 4200
+    const mids = ctx.createBiquadFilter()
+    mids.type = 'peaking'
+    mids.frequency.value = 1400
+    mids.gain.value = 6
+    soloBus = ctx.createGain()
+    soloBus.gain.value = 0.55
+    soloBus.connect(drive).connect(cab).connect(mids).connect(mix)
     noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate)
     const d = noise.getChannelData(0)
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
@@ -248,6 +265,61 @@ function boom(t) {
   noiseSrc(t, 1.2).connect(filter('highpass', 2000)).connect(env(t, 0.35, 1.0))
 }
 
+// one note of the shark's solo: distorted, optionally bent up into pitch, with vibrato on long notes
+function soloNote(t, midi, dur, bendFrom, vibrato) {
+  const g = ctx.createGain()
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.5, t + 0.008)
+  g.gain.setValueAtTime(0.5, t + dur * 0.85)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.08)
+  g.connect(soloBus)
+  const vib = vibrato ? ctx.createOscillator() : null
+  const vibAmt = vibrato ? ctx.createGain() : null
+  if (vibrato) {
+    vib.frequency.value = 6.5
+    vibAmt.gain.setValueAtTime(0, t)
+    vibAmt.gain.linearRampToValueAtTime(hz(midi) * 0.03, t + Math.min(0.35, dur * 0.5)) // vibrato blooms in
+    vib.connect(vibAmt)
+    vib.start(t)
+    vib.stop(t + dur + 0.1)
+  }
+  for (const det of [-7, 7]) {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.detune.value = det
+    if (bendFrom != null) {
+      o.frequency.setValueAtTime(hz(bendFrom), t)
+      o.frequency.exponentialRampToValueAtTime(hz(midi), t + Math.min(0.18, dur * 0.4)) // string bend
+    } else o.frequency.setValueAtTime(hz(midi), t)
+    if (vibrato) vibAmt.connect(o.frequency)
+    o.connect(g)
+    o.start(t)
+    o.stop(t + dur + 0.1)
+  }
+}
+
+// the shark's solo: 8 bars over the final chorus (C Am F G twice), A-minor pentatonic + blues.
+// each entry: [step in the bar (16ths), MIDI note, length in 16ths, bend from (or null), vibrato]
+const SHARK_SOLO = [
+  // lands with a screaming bend, then a fast run up
+  [[0, 81, 8, 79, true], [8, 79, 1], [9, 81, 1], [10, 84, 1], [11, 86, 1], [12, 88, 1], [13, 86, 1], [14, 84, 1], [15, 81, 1]],
+  // call and answer
+  [[0, 84, 4, null, true], [4, 81, 2], [6, 79, 2], [8, 76, 4, 74, true], [12, 79, 2], [14, 81, 2]],
+  // finger-tapping arpeggio
+  [77, 81, 84, 89, 84, 81, 77, 81, 77, 81, 84, 89, 93, 89, 84, 81].map((n, i) => [i, n, 1]),
+  // climbing bends
+  [[0, 86, 6, 84, true], [6, 84, 2], [8, 86, 2], [10, 88, 2], [12, 91, 4, null, true]],
+  // blazing descending lick
+  [96, 93, 91, 88, 93, 91, 88, 86, 91, 88, 86, 84, 88, 86, 84, 81].map((n, i) => [i, n, 1]),
+  // bluesy (with the flat 5) into a huge held bend
+  [[0, 81, 2], [2, 84, 2], [4, 87, 1], [5, 86, 1], [6, 84, 2], [8, 81, 8, 79, true]],
+  // trill, then a run down
+  [[0, 89, 1], [1, 91, 1], [2, 89, 1], [3, 91, 1], [4, 89, 1], [5, 91, 1], [6, 89, 1], [7, 91, 1], [8, 93, 1], [9, 91, 1], [10, 89, 1], [11, 88, 1], [12, 86, 1], [13, 84, 1], [14, 81, 1], [15, 79, 1]],
+  // the climax: up to a sky-high bent C, held with wide vibrato
+  [[0, 91, 4], [4, 93, 4, 91, true], [8, 96, 8, 94, true]],
+]
+const SOLO_START = 32 // bar where the shark lands (60 s)
+
 function chordHit(t, notes, dur) {
   for (const n of notes) {
     const o = ctx.createOscillator()
@@ -308,10 +380,13 @@ function playStep(i, t) {
     if (s === 8) riser(t, stepDur * 8)
     return
   }
+  const solo = bar >= SOLO_START && bar < SOLO_START + SHARK_SOLO.length
   if (bar === 32 && s === 0) {
     powerChord(t, 52)
     kick(t, 1.3)
   }
+  if (bar === SOLO_START + 4 && s === 0) powerChord(t, 52) // halfway through the solo
+  if (solo && s === 0) crash(t)
   if (sec === 'volcano') {
     if (bar === 24 && s === 0) boom(t)
     if (s === 0) crash(t)
@@ -352,14 +427,16 @@ function playStep(i, t) {
   if (sec === 'break' && s === 0) bass(t, ch.root, stepDur * 14)
   if (sec === 'intro' && bar >= 2 && s % 4 === 0) bass(t, ch.root, stepDur * 3)
 
-  // surf guitar: tremolo-picked chord tones
-  if (sec === 'verse' || sec === 'chorus' || sec === 'volcano') guitar(t, ch.triad[(s >> 1) % 3] + (sec === 'verse' ? -12 : 0), sec === 'verse' ? 0.8 : 1.15)
+  // surf guitar: tremolo-picked chord tones (backs off under the shark's solo)
+  if (sec === 'verse' || sec === 'chorus' || sec === 'volcano') guitar(t, ch.triad[(s >> 1) % 3] + (sec === 'verse' ? -12 : 0), sec === 'verse' ? 0.8 : solo ? 0.55 : 1.15)
 
-  // shark shred solo: fast high chord-tone runs for 4 bars after it lands
-  if (bar >= 32 && bar < 36) guitar(t, ch.triad[s % 3] + 12 + (s % 4 === 3 ? 12 : 0), 1.7)
+  // THE SHARK SOLO
+  if (solo) {
+    for (const [at, n, len, bend, vib] of SHARK_SOLO[bar - SOLO_START]) if (at === s) soloNote(t, n, len * stepDur, bend ?? null, vib)
+  }
 
-  // lead hook (an octave down and softer in the second verse)
-  if (s % 2 === 0) {
+  // lead hook (an octave down and softer in the second verse); quiet while the shark solos
+  if (s % 2 === 0 && !solo) {
     const note = HOOK[bar % 4][s / 2]
     if (note != null) {
       if (sec === 'chorus') lead(t, note + (bar >= 36 ? 12 : 0), stepDur * 1.8)
@@ -368,11 +445,14 @@ function playStep(i, t) {
   }
 }
 
-// ---------- DO NOT PRESS: sound effects for the 30-second giant Ryan Jr. event (scheduled all at once)
-export function pressSfx() {
+// ---------- DO NOT PRESS: a horror-movie score + sound effects for the giant Ryan Jr. event.
+// Everything is scheduled at once from the event's timeline ({ T, SNEEZES, LIGHTNING }).
+export function pressSfx({ T, SNEEZES, LIGHTNING }) {
   prime()
   if (!ctx) return
   const t0 = ctx.currentTime + 0.05
+  const last = SNEEZES[SNEEZES.length - 1]
+
   // 0-4 s: wailing siren
   {
     const o = ctx.createOscillator()
@@ -384,26 +464,32 @@ export function pressSfx() {
     }
     const g = ctx.createGain()
     g.gain.setValueAtTime(0.0001, t0)
-    g.gain.exponentialRampToValueAtTime(0.12, t0 + 0.05)
-    g.gain.setValueAtTime(0.12, t0 + 3.8)
+    g.gain.exponentialRampToValueAtTime(0.1, t0 + 0.05)
+    g.gain.setValueAtTime(0.1, t0 + 3.8)
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + 4.1)
     o.connect(filter('lowpass', 2500)).connect(g).connect(mix)
     o.start(t0)
     o.stop(t0 + 4.2)
   }
+
+  // the score: a dark drone (D minor) that swells under everything, cut to silence right before
+  // the mega-sneeze
+  drone(t0 + 2.5, last.at - 0.45 - 2.5, [26, 38, 45, 50])
+  drone(last.at + 0.2 + t0, T.BLESS - last.at - 1.5, [26, 38, 45], 0.6)
+  // a heartbeat that speeds up as he rises, and again as he wades closer
+  heartbeat(t0 + 3, t0 + SNEEZES[0].at - 0.3, 1.05, 0.55)
+  heartbeat(t0 + T.CLOSER, t0 + last.at - 0.45, 0.8, 0.22)
+  // movie-trailer BRAAAMs when he appears and when he starts coming closer
+  braam(t0 + T.RISE, 3.5)
+  braam(t0 + T.CLOSER, 3.5)
+  // screeching horror strings before each sneeze (the last one is long and climbs)
+  for (const sn of SNEEZES) strings(t0 + sn.at - sn.build - 1.5, sn.build + 1.4, sn === last ? 12 : 5)
+
   // 3-13 s: the sea boils and the ground rumbles as the giant rises
-  rumbleSfx(t0 + 3, 10, 0.5)
+  rumbleSfx(t0 + 3, 10, 0.4)
   // 9.5 s: a deep, enormous "MRRROW"
-  {
-    const o = ctx.createOscillator()
-    o.type = 'sawtooth'
-    o.frequency.setValueAtTime(70, t0 + 9.5)
-    o.frequency.linearRampToValueAtTime(110, t0 + 10.3)
-    o.frequency.linearRampToValueAtTime(60, t0 + 11.6)
-    o.connect(filter('lowpass', 500, 4)).connect(env(t0 + 9.5, 0.55, 2.0, 0.2))
-    o.start(t0 + 9.5)
-    o.stop(t0 + 11.8)
-  }
+  growl(t0 + 9.5)
+  growl(t0 + T.CLOSER + 1, 0.8)
   // 13 s: a whoosh of water as he shakes off, then clones popping everywhere
   noiseSrc(t0 + 13, 2).connect(filter('bandpass', 900, 0.8)).connect(env(t0 + 13, 0.5, 1.8, 0.3))
   for (let k = 0; k < 40; k++) {
@@ -412,33 +498,30 @@ export function pressSfx() {
     o.type = 'sine'
     o.frequency.setValueAtTime(500 + Math.random() * 900, t)
     o.frequency.exponentialRampToValueAtTime(1800 + Math.random() * 600, t + 0.06)
-    o.connect(env(t, 0.08, 0.08))
+    o.connect(env(t, 0.07, 0.08))
     o.start(t)
     o.stop(t + 0.12)
   }
-  // 17 s: "ah... ahh..." (two rising breaths), 19.5 s: ACHOO
-  for (const [at, len] of [[17.1, 0.9], [18.2, 1.2]]) {
-    const f = filter('bandpass', 700, 2)
-    f.frequency.setValueAtTime(600, t0 + at)
-    f.frequency.linearRampToValueAtTime(1500, t0 + at + len)
-    noiseSrc(t0 + at, len + 0.1).connect(f).connect(env(t0 + at, 0.4, len, len * 0.8))
+  // thunder for every lightning strike
+  for (const at of LIGHTNING) thunder(t0 + at)
+  // the three sneezes: "ah... ahh..." breaths, then ACHOO (each bigger), then a crashing wave
+  for (const sn of SNEEZES) {
+    const breaths = sn === last ? [[sn.at - 3.4, 0.9], [sn.at - 2.3, 1.0], [sn.at - 1.2, 1.15]] : [[sn.at - 2.4, 0.9], [sn.at - 1.3, 1.2]]
+    for (const [at, len] of breaths) {
+      const f = filter('bandpass', 700, 2)
+      f.frequency.setValueAtTime(600, t0 + at)
+      f.frequency.linearRampToValueAtTime(1500 + sn.power * 300, t0 + at + len)
+      noiseSrc(t0 + at, len + 0.1).connect(f).connect(env(t0 + at, 0.3 + sn.power * 0.1, len, len * 0.8))
+    }
+    sneezeSfx(t0 + sn.at, sn.power)
+    noiseSrc(t0 + sn.at + 2.6, 2.5).connect(filter('lowpass', 1200)).connect(env(t0 + sn.at + 2.6, 0.35 * sn.power, 2.2, 0.4))
+    if (sn === last) boom(t0 + sn.at + 0.15) // ...and the volcano goes off
   }
-  {
-    const t = t0 + 19.5
-    noiseSrc(t, 1.6).connect(filter('bandpass', 2400, 0.7)).connect(env(t, 1.0, 1.2, 0.01))
-    noiseSrc(t, 2.2).connect(filter('lowpass', 500)).connect(env(t, 0.9, 2.0, 0.01))
-    const o = ctx.createOscillator()
-    o.frequency.setValueAtTime(220, t)
-    o.frequency.exponentialRampToValueAtTime(40, t + 0.6)
-    o.connect(env(t, 0.8, 0.7, 0.005))
-    o.start(t)
-    o.stop(t + 0.8)
-  }
-  // 23-28 s: a ground-shaking purr
-  rumbleSfx(t0 + 23, 5, 0.35, 25)
-  // 25 s: a sparkly "bless you" chime
+  // after: a ground-shaking purr, a warm major pad and a sparkly "bless you" chime
+  rumbleSfx(t0 + last.at + 2.5, T.SINK - last.at, 0.3, 25)
+  pad(t0 + T.BLESS - 1.5, 6, [62, 66, 69, 74])
   ;[84, 88, 91, 96].forEach((n, i) => {
-    const t = t0 + 25 + i * 0.12
+    const t = t0 + T.BLESS + i * 0.12
     const o = ctx.createOscillator()
     o.type = 'triangle'
     o.frequency.value = hz(n)
@@ -446,6 +529,125 @@ export function pressSfx() {
     o.start(t)
     o.stop(t + 1.3)
   })
+}
+
+function drone(t, dur, notes, level = 1) {
+  const g = ctx.createGain()
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.16 * level, t + 3)
+  g.gain.setValueAtTime(0.16 * level, t + dur - 0.05)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+  const f = filter('lowpass', 300, 6)
+  const lfo = ctx.createOscillator()
+  const amt = ctx.createGain()
+  lfo.frequency.value = 0.15
+  amt.gain.value = 220
+  lfo.connect(amt).connect(f.frequency)
+  lfo.start(t)
+  lfo.stop(t + dur)
+  f.connect(g).connect(mix)
+  for (const n of notes) {
+    for (const det of [-6, 6]) {
+      const o = ctx.createOscillator()
+      o.type = 'sawtooth'
+      o.frequency.value = hz(n)
+      o.detune.value = det
+      o.connect(f)
+      o.start(t)
+      o.stop(t + dur)
+    }
+  }
+}
+
+function heartbeat(from, to, startGap, endGap) {
+  let t = from
+  while (t < to) {
+    const k = (t - from) / Math.max(0.001, to - from)
+    for (const [dt, v] of [[0, 1], [0.16, 0.7]]) {
+      const o = ctx.createOscillator()
+      o.frequency.setValueAtTime(70, t + dt)
+      o.frequency.exponentialRampToValueAtTime(35, t + dt + 0.12)
+      o.connect(env(t + dt, 0.5 * v * (0.6 + k * 0.6), 0.2))
+      o.start(t + dt)
+      o.stop(t + dt + 0.25)
+    }
+    t += startGap + (endGap - startGap) * k
+  }
+}
+
+function braam(t, dur) {
+  const f = filter('lowpass', 200, 3)
+  f.frequency.setValueAtTime(200, t)
+  f.frequency.exponentialRampToValueAtTime(1600, t + 0.6)
+  f.frequency.exponentialRampToValueAtTime(300, t + dur)
+  f.connect(env(t, 0.45, dur, 0.05))
+  for (const n of [26, 38, 45, 50, 53]) {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.value = hz(n)
+    o.connect(f)
+    o.start(t)
+    o.stop(t + dur + 0.1)
+  }
+}
+
+function strings(t, dur, climb) {
+  for (const n of [74, 75, 81]) {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.setValueAtTime(hz(n), t)
+    o.frequency.exponentialRampToValueAtTime(hz(n + climb), t + dur)
+    const trem = ctx.createGain()
+    const lfo = ctx.createOscillator()
+    const amt = ctx.createGain()
+    lfo.frequency.value = 11
+    amt.gain.value = 0.5
+    trem.gain.value = 0.5
+    lfo.connect(amt).connect(trem.gain)
+    o.connect(filter('bandpass', 2500, 0.6)).connect(trem).connect(env(t, 0.06, dur, dur * 0.85))
+    for (const x of [o, lfo]) {
+      x.start(t)
+      x.stop(t + dur + 0.1)
+    }
+  }
+}
+
+function growl(t, level = 1) {
+  const o = ctx.createOscillator()
+  o.type = 'sawtooth'
+  o.frequency.setValueAtTime(70, t)
+  o.frequency.linearRampToValueAtTime(110, t + 0.8)
+  o.frequency.linearRampToValueAtTime(60, t + 2.1)
+  o.connect(filter('lowpass', 500, 4)).connect(env(t, 0.55 * level, 2.0, 0.2))
+  o.start(t)
+  o.stop(t + 2.3)
+}
+
+function thunder(t) {
+  noiseSrc(t, 0.3).connect(filter('highpass', 1500)).connect(env(t, 0.5, 0.25, 0.002))
+  noiseSrc(t + 0.05, 3).connect(filter('lowpass', 300)).connect(env(t + 0.05, 0.7, 2.6, 0.08))
+}
+
+function sneezeSfx(t, power) {
+  noiseSrc(t, 1.6).connect(filter('bandpass', 2400, 0.7)).connect(env(t, 0.6 + power * 0.25, 1.0 + power * 0.3, 0.01))
+  noiseSrc(t, 2.2).connect(filter('lowpass', 500)).connect(env(t, 0.6 + power * 0.2, 1.6 + power * 0.4, 0.01))
+  const o = ctx.createOscillator()
+  o.frequency.setValueAtTime(220, t)
+  o.frequency.exponentialRampToValueAtTime(40, t + 0.6)
+  o.connect(env(t, 0.8, 0.7, 0.005))
+  o.start(t)
+  o.stop(t + 0.8)
+}
+
+function pad(t, dur, notes) {
+  for (const n of notes) {
+    const o = ctx.createOscillator()
+    o.type = 'triangle'
+    o.frequency.value = hz(n)
+    o.connect(env(t, 0.07, dur, 1.2))
+    o.start(t)
+    o.stop(t + dur + 1.3)
+  }
 }
 
 // low rumble; with `pulse` it throbs (a purr)

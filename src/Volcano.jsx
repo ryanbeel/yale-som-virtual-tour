@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { concert } from './concert.js'
+import { LAST_SNEEZE, press } from './donotpress.js'
 import { CRATER, heightAt } from './island.js'
 
 // Halfway through the concert the Diamond Head crater wakes up: it rumbles and smokes, then a
@@ -61,6 +62,12 @@ function levels() {
   let grow = 0
   if (erupt >= 0) grow = Math.min(1, erupt / GROW)
   else if (phase === 'idle' && sinceEnd < SINK) grow = 1 - sinceEnd / SINK
+  // the giant's mega-sneeze knocks the volcano awake for ~9 seconds
+  const pe = press.t() - LAST_SNEEZE
+  if (pe >= 0 && pe < 10) {
+    const g = Math.min(1, pe / 1.5) * (1 - Math.min(1, Math.max(0, (pe - 8) / 2)))
+    if (g > grow) return { rumble, grow: g, erupting: pe }
+  }
   return { rumble, grow, erupting: erupt >= 0 ? erupt : -1 }
 }
 

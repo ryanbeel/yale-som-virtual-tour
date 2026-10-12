@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { AUDIENCE, MACHINE, heightAt, inland } from './island.js'
 import { concert } from './concert.js'
-import { T as PRESS, press } from './donotpress.js'
+import { LAST_SNEEZE, T as PRESS, press } from './donotpress.js'
 import { sneezeLift } from './DoNotPress.jsx'
 
 // The Ryan Jr. clone army: 100 at the start, plus one more out of the Clone-O-Matic every 60 seconds.
@@ -142,7 +142,7 @@ export default function IslandCats() {
     const total = Math.min(MAX_CLONES, cloneTotal(now))
     const party = concert.get().phase === 'show'
     const pressT = press.t()
-    const zoomies = pressT >= PRESS.RISE && pressT < PRESS.SNEEZE // giant cat! everybody RUN
+    const zoomies = pressT >= PRESS.RISE && pressT < LAST_SNEEZE // giant cat! everybody RUN
     const wild = concert.get().erupted // two thirds of the clones join in once the volcano blows
     catCount.n = total
     cats.forEach((cat, i) => {

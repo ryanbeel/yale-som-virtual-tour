@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { RyanJr, bubbleMat } from './Allison.jsx'
 import { CLONE_EVERY, cloneTotal, pageSeconds } from './IslandCats.jsx'
 import { heightAt } from './island.js'
+import { press as doNotPress } from './donotpress.js'
 
 // The Clone-O-Matic 3000: a glass chamber between two tesla coils, a control panel, and a live
 // clone counter. The original Ryan Jr. runs it (in tiny lab goggles). Every 60 seconds it flashes,
@@ -83,7 +84,8 @@ export default function CloneMachine({ position }) {
     const t = clock.elapsedTime
     const now = pageSeconds()
     const phase = now % CLONE_EVERY // a clone is born at phase 0
-    const firing = now >= CLONE_EVERY && phase < 4.5
+    const haywire = doNotPress.t() >= 2 // DO NOT PRESS was pressed: sparks everywhere, counter goes nuts
+    const firing = (now >= CLONE_EVERY && phase < 4.5) || haywire
     const charging = CLONE_EVERY - phase < 5
     rig.current.position.x = firing ? Math.sin(t * 60) * 0.03 : 0
     glowMat.opacity = firing ? 0.55 + Math.sin(t * 30) * 0.25 : charging ? 0.35 + Math.sin(t * 12) * 0.15 : 0.22
@@ -103,9 +105,9 @@ export default function CloneMachine({ position }) {
     bubble.current.visible = charging || firing || t % 9 < 2
     bubble.current.material = bubbles[firing ? 1 : Math.floor(t / 9) % 3 === 2 ? 2 : 0]
 
-    const total = cloneTotal(now)
+    const total = haywire ? Math.floor(Math.random() * 9999999) : cloneTotal(now)
     const left = Math.ceil(CLONE_EVERY - phase)
-    const text = `${total}|${firing ? 'NEW!' : left}`
+    const text = haywire ? `err${Math.floor(t * 8)}` : `${total}|${firing ? 'NEW!' : left}`
     if (text !== last.current) {
       last.current = text
       const g = screenCanvas.getContext('2d')
@@ -119,7 +121,7 @@ export default function CloneMachine({ position }) {
       g.fillText(String(total), 256, 168)
       g.font = 'bold 38px ui-monospace, Menlo, monospace'
       g.fillStyle = firing ? '#ff4fa3' : '#ffd23f'
-      g.fillText(firing ? '*** NEW CLONE! ***' : `next clone in 0:${String(left).padStart(2, '0')}`, 256, 228)
+      g.fillText(haywire ? '!!! ERROR !!! ERROR !!!' : firing ? '*** NEW CLONE! ***' : `next clone in 0:${String(left).padStart(2, '0')}`, 256, 228)
       screenTex.needsUpdate = true
     }
   })
