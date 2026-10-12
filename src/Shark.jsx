@@ -5,6 +5,8 @@ import { bubbleMat } from './Allison.jsx'
 import { SHORE, STAGE, heightAt, inWater } from './island.js'
 import { SHARK_APPROACH, SHARK_LAND, SHARK_LEAP, concert, sharkSpot } from './concert.js'
 import { textBubble } from './Concert.jsx'
+import { T as PRESS, press } from './donotpress.js'
+import { GIANT } from './island.js'
 
 // A big cartoon shark. It patrols offshore with its fin above the waves; step into the water and it
 // swims straight at you, then circles you, chomping (it's friendly... probably). Faces +z.
@@ -195,6 +197,11 @@ export default function Shark() {
         tz = pz + Math.sin(s.orbit) * 6.5
         speed = 2.5
       }
+    } else if (press.t() >= 4) {
+      // something big is happening out there... go look
+      tx = GIANT.x + 26
+      tz = GIANT.z - 30
+      speed = 12
     } else if (party) {
       // swim back and forth off the beach behind the stage, where the crowd can see it jump
       tx = STAGE.x - 46 + Math.sin(t * 0.15) * 4
@@ -231,8 +238,17 @@ export default function Shark() {
     const leap = party ? (t % 4) / 1.5 : 1
     const jump = leap < 1 ? Math.sin(leap * Math.PI) * 6 : 0
     const flip = leap < 1 ? -Math.cos(leap * Math.PI) * 0.9 : 0
-    root.current.position.set(s.x, -0.45 + s.rise * 0.55 + jump + Math.sin(t * 1.5) * 0.06, s.z)
-    root.current.rotation.set(-s.rise * 0.18 + flip, s.yaw, Math.sin(t * 3) * 0.05)
+    // ACHOO: the sneeze launches the shark way up into the sky, spinning
+    const sa = (press.t() - PRESS.SNEEZE - 0.3) * 0.55
+    const launched = sa >= 0 && sa < 3.2
+    const fly = launched ? 22 * sa - 6.9 * sa * sa : 0
+    root.current.position.set(s.x, -0.45 + s.rise * 0.55 + jump + Math.max(0, fly) + Math.sin(t * 1.5) * 0.06, s.z)
+    root.current.rotation.set(-s.rise * 0.18 + flip + (launched ? sa * 4 : 0), s.yaw, Math.sin(t * 3) * 0.05 + (launched ? sa * 2 : 0))
+    if (launched && !close) {
+      bubble.current.visible = true
+      bubble.current.material = textBubble('WHEEEEEE!!!', '#1d6fa8')
+      return
+    }
     tail.current.rotation.y = Math.sin(t * (hunting ? 9 : 5)) * 0.45
     jaw.current.rotation.x = close ? 0.15 + Math.abs(Math.sin(t * 6)) * 0.45 : 0.08
     bubble.current.visible = close

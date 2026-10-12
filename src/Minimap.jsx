@@ -153,6 +153,12 @@ function drawIsland(g) {
   g.beginPath()
   g.arc(mx, my, 4, 0, Math.PI * 2)
   g.fill()
+  // the DO NOT PRESS button
+  const [nx, ny] = ipx(I.BUTTON.x, I.BUTTON.z)
+  g.fillStyle = '#e8222e'
+  g.beginPath()
+  g.arc(nx, ny, 4, 0, Math.PI * 2)
+  g.fill()
   // portal home
   const [ox, oy] = ipx(I.RETURN_PORTAL.x, I.RETURN_PORTAL.z)
   g.fillStyle = '#ff4fa3'
@@ -166,6 +172,8 @@ function drawIsland(g) {
   g.fillText('BAR', bx - 8, by + 14)
   g.fillText('CLONES', mx + 6, my + 3)
   g.fillText('HOME', ox + 6, oy + 3)
+  g.fillStyle = '#ff6b6b'
+  g.fillText('???', nx + 6, ny + 3)
   g.fillText('N ↑', IW - 22, 12)
 }
 

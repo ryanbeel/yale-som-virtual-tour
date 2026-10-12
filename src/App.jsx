@@ -8,6 +8,7 @@ import TouchControls from './TouchControls.jsx'
 import ChatWindow from './ChatWindow.jsx'
 import { chat, talkTo, useChat } from './chat.js'
 import { concert, useConcert } from './concert.js'
+import { usePress } from './donotpress.js'
 import { EYE, SPAWN, collide, floorAt, locate } from './layout.js'
 import * as island from './island.js'
 import { useWorld } from './world.js'
@@ -38,6 +39,25 @@ export default function App() {
   const playing = locked || touchOn
   const here = useWorld()
   const show = useConcert()
+  const pressed = usePress()
+  // DO NOT PRESS: shake the screen while the giant rises, hard on the sneeze, gently while he purrs
+  useEffect(() => {
+    if (!pressed.active) return
+    const body = document.body.classList
+    const at = (ms, fn) => setTimeout(fn, ms)
+    const timers = [
+      at(3000, () => body.add('rumble')),
+      at(13000, () => body.remove('rumble')),
+      at(19500, () => body.add('quake')),
+      at(21500, () => body.remove('quake')),
+      at(23000, () => body.add('rumble')),
+      at(28000, () => body.remove('rumble')),
+    ]
+    return () => {
+      timers.forEach(clearTimeout)
+      body.remove('rumble', 'quake')
+    }
+  }, [pressed.active, pressed.presses])
   const talkingTo = useChat((s) => s.open)
   const aim = useChat((s) => s.aim)
   const near = useChat((s) => s.near)
@@ -93,6 +113,20 @@ export default function App() {
       )}
       {here.flash > 0 && <div key={here.flash} className="flash" />}
       {here.name === 'island' && show.erupted && <div className="flash erupt" />}
+      {here.name === 'island' && pressed.active && (
+        <>
+          {pressed.stage === 'alarm' && <div className="alarm-vignette" />}
+          {pressed.stage === 'alarm' && <div className="event-title red">⚠️ YOU PRESSED IT ⚠️</div>}
+          {pressed.stage === 'giant' && <div className="event-title">😱 GIANT RYAN JR.!!!</div>}
+          {pressed.stage === 'sneeze' && (
+            <>
+              <div className="flash" />
+              <div className="event-title huge">ACHOO!!!</div>
+            </>
+          )}
+          {pressed.stage === 'bless' && <div className="event-title soft">bless you. 🐾</div>}
+        </>
+      )}
       {here.name === 'island' && show.shark && (
         <>
           <div className="flash" />

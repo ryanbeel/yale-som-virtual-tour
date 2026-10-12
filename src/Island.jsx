@@ -9,6 +9,7 @@ import Shark from './Shark.jsx'
 import Concert from './Concert.jsx'
 import { concert, useConcert } from './concert.js'
 import Volcano from './Volcano.jsx'
+import DoNotPress from './DoNotPress.jsx'
 import { Torch, Totem } from './TikiParty.jsx'
 import {
   BAR, BEACH_SPOTS, CRATER, HAMMOCK, HUTS, MACHINE, PALMS, PLAZA, RETURN_PORTAL, SHORE, SIGN, STAGE, TORCHES,
@@ -640,6 +641,7 @@ export default function Island() {
       <Shark />
       <Concert />
       <Volcano />
+      <DoNotPress />
       {TORCHES.map(([x, z], i) => (
         <Torch key={i} position={[x, heightAt(x, z), z]} />
       ))}

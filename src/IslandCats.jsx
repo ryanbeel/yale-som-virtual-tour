@@ -3,6 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { AUDIENCE, MACHINE, heightAt, inland } from './island.js'
 import { concert } from './concert.js'
+import { T as PRESS, press } from './donotpress.js'
+import { sneezeLift } from './DoNotPress.jsx'
 
 // The Ryan Jr. clone army: 100 at the start, plus one more out of the Clone-O-Matic every 60 seconds.
 // Each body part (head, ears, tail...) is one InstancedMesh shared by every cat, so hundreds of cats
@@ -139,6 +141,8 @@ export default function IslandCats() {
     const now = pageSeconds()
     const total = Math.min(MAX_CLONES, cloneTotal(now))
     const party = concert.get().phase === 'show'
+    const pressT = press.t()
+    const zoomies = pressT >= PRESS.RISE && pressT < PRESS.SNEEZE // giant cat! everybody RUN
     const wild = concert.get().erupted // two thirds of the clones join in once the volcano blows
     catCount.n = total
     cats.forEach((cat, i) => {
@@ -172,8 +176,9 @@ export default function IslandCats() {
             cat.mode = 'dance'
             cat.timer = 99
           }
+          if (zoomies && cat.mode !== 'walk') cat.timer = 0
           if (cat.timer <= 0) {
-            const pick = cat.rand()
+            const pick = zoomies ? 0 : cat.rand()
             cat.mode = pick < 0.55 ? 'walk' : pick < 0.72 ? 'dance' : pick < 0.87 ? 'sit' : 'nap'
             cat.timer = 3 + cat.rand() * 8
             if (cat.mode === 'walk') cat.target = landSpot(cat.rand)
@@ -184,7 +189,7 @@ export default function IslandCats() {
             const d = Math.hypot(dx, dz)
             if (d < 0.5 && !cat.partying) cat.timer = 0
             else {
-              const step = Math.min(d, cat.speed * dt)
+              const step = Math.min(d, cat.speed * dt * (zoomies ? 4 : 1))
               cat.x += (dx / d) * step
               cat.z += (dz / d) * step
               const want = Math.atan2(dx, dz)
@@ -203,6 +208,13 @@ export default function IslandCats() {
           }
         }
         y += heightAt(cat.x, cat.z)
+        // ACHOO: every clone on the island goes flying (slow motion, spinning)
+        const lift = pressT >= 0 ? sneezeLift(pressT, cat.phase) : null
+        if (lift) {
+          y += lift.y
+          pitch += lift.spin
+          roll += lift.spin * 0.4
+        }
       }
       catXZ[i * 2] = cat.x
       catXZ[i * 2 + 1] = cat.z

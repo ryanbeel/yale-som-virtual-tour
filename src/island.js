@@ -42,6 +42,9 @@ export const HAMMOCK = { a: [16, 42], b: [21, 40] }
 // concert: Golden Ryan Jr. (talk to him to start the show) and the audience area in front of the stage
 export const GOLDEN = { x: -14, z: 28 }
 export const AUDIENCE = { x0: -18, x1: -8.5, z0: 10, z1: 24 }
+// the DO NOT PRESS button on the south beach, and where the giant Ryan Jr. rises out of the sea
+export const BUTTON = { x: 8, z: 46.5 }
+export const GIANT = { x: 8, z: 108 }
 
 function rand(seed) {
   let s = seed >>> 0
@@ -55,6 +58,7 @@ const clear = (x, z, pad = 0) => {
   if (Math.hypot(x - BAR.x, z - BAR.z) < 7 + pad) return false
   if (Math.hypot(x - RETURN_PORTAL.x, z - RETURN_PORTAL.z) < 5 + pad) return false
   if (Math.hypot(x - GOLDEN.x, z - GOLDEN.z) < 4 + pad) return false
+  if (Math.hypot(x - BUTTON.x, z - BUTTON.z) < 8 + pad) return false
   if (x > AUDIENCE.x0 - 2 && x < AUDIENCE.x1 + 2 && z > AUDIENCE.z0 - 2 && z < AUDIENCE.z1 + 2) return false
   if (Math.hypot(x - CRATER.x, z - CRATER.z) < CRATER.r + 7 + pad) return false
   if (HUTS.some(([hx, hz]) => Math.hypot(x - hx, z - hz) < 5 + pad)) return false
@@ -106,6 +110,7 @@ const POSTS = () => [
   [SIGN.x + 6.5, SIGN.z, 0.4],
   [BAR.x, BAR.z, 2.6],
   [GOLDEN.x, GOLDEN.z, 0.9],
+  [BUTTON.x, BUTTON.z, 0.7],
 ]
 let posts
 export function collide(pos) {
@@ -153,6 +158,7 @@ export function locate(x, z) {
   else if (at(MACHINE, 5)) where = 'Clone-O-Matic 3000'
   else if (Math.abs(x - STAGE.x) < STAGE.d / 2 + 3 && Math.abs(z - STAGE.z) < STAGE.w / 2 + 3) where = 'The Stage'
   else if (at(GOLDEN, 3)) where = 'Golden Ryan Jr.'
+  else if (at(BUTTON, 4)) where = 'DO NOT PRESS'
   else if (at(BAR, 7)) where = 'Tiki Bar'
   else if (at(CRATER, CRATER.r + 6)) where = 'Diamond Head crater'
   else if (at(PLAZA, PLAZA.r + 6) || onPath(x, z)) where = 'Arrival Plaza'
